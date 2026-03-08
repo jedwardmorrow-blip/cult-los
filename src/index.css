@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { @apply bg-cult-black text-cult-white font-body; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { @apply bg-cult-dark; }
+  ::-webkit-scrollbar-thumb { @apply bg-cult-muted rounded-full; }
+}
+
+@layer components {
+  .card { @apply bg-cult-card border border-cult-border rounded-lg; }
+  .btn-primary { @apply bg-cult-gold text-cult-black font-body font-semibold px-4 py-2 rounded-md text-sm hover:bg-cult-gold/90 transition-colors duration-150 cursor-pointer; }
+  .btn-ghost { @apply bg-transparent border border-cult-border text-cult-text font-body text-sm px-4 py-2 rounded-md hover:border-cult-text hover:text-cult-white transition-colors duration-150 cursor-pointer; }
+  .status-badge { @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium font-mono; }
+  .status-on-track { @apply status-badge bg-cult-green/20 text-cult-green-bright border border-cult-green/30; }
+  .status-off-track { @apply status-badge bg-cult-red/20 text-cult-red-bright border border-cult-red/30; }
+  .status-at-risk { @apply status-badge bg-cult-amber/20 text-cult-amber-bright border border-cult-amber/30; }
+  .status-complete { @apply status-badge bg-cult-gold/20 text-cult-gold border border-cult-gold/30; }
+  .phase-pill { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium; }
+  .input-field { @apply bg-cult-dark border border-cult-border rounded-md px-3 py-2 text-sm text-cult-white placeholder-cult-text focus:outline-none focus:border-cult-gold transition-colors duration-150 w-full; }
+  .section-title { @apply font-display text-2xl tracking-wider text-cult-white uppercase; }
+  .nav-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm text-cult-text hover:text-cult-white hover:bg-cult-muted transition-all duration-150 cursor-pointer; }
+  .nav-item-active { @apply nav-item text-cult-gold bg-cult-gold/10 border border-cult-gold/20; }
+}
