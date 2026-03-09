@@ -105,6 +105,20 @@ export interface IssueNote {
   profiles?: { full_name: string }
 }
 
+export interface MeetingSession {
+  id: string
+  room_id: string
+  meeting_date: string
+  rating?: number
+  cascading_messages?: string
+  todo_stats?: { total: number; completed: number }
+  rock_stats?: { onTrack: number; offTrack: number; done: number }
+  issue_stats?: { total: number; resolved: number }
+  attendees?: string[]
+  recorded_by?: string
+  created_at: string
+}
+
 export interface MeetingContextType {
   room: MeetingRoom | null
   members: RoomMember[]
@@ -145,4 +159,10 @@ export interface MeetingContextType {
   solveIssue: (issueId: string, solution: string) => Promise<void>
   addIssueNote: (issueId: string, text: string) => Promise<void>
   issueToTodo: (issue: import('./index').Issue) => Promise<void>
+  // Phase 4: Conclude
+  concludeRating: number | null
+  concludeCascading: string
+  setConcludeRating: (rating: number | null) => void
+  setConcludeCascading: (text: string) => void
+  recordSession: () => Promise<void>
 }
