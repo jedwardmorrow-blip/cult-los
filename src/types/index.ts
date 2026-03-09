@@ -52,6 +52,7 @@ export interface Rock {
   quarter: string
   title: string
   description?: string
+  success_metric?: string
   status: 'on_track' | 'off_track' | 'complete'
   due_date?: string
   completed_at?: string
