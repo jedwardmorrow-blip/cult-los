@@ -38,6 +38,10 @@ export function MeetingProvider({ roomId, children }: Props) {
   const [issueNotes, setIssueNotes] = useState<IssueNote[]>([])
   const [discussingIssueId, setDiscussingIssueId] = useState<string | null>(null)
 
+  // Phase 4: Conclude state
+  const [concludeRating, setConcludeRating] = useState<number | null>(null)
+  const [concludeCascading, setConcludeCascading] = useState('')
+
   // ─── Load room + members ───
   useEffect(() => {
     if (!roomId) return
@@ -491,6 +495,33 @@ export function MeetingProvider({ roomId, children }: Props) {
     })
   }, [roomId, user])
 
+  // ─── Phase 4: Conclude ───
+
+  const recordSession = useCallback(async () => {
+    if (!user) return
+    const todoTotal = todos.length
+    const todoCompleted = todos.filter(t => t.status === 'complete').length
+    const rockOnTrack = rocks.filter(r => r.status === 'on_track').length
+    const rockOffTrack = rocks.filter(r => r.status === 'off_track').length
+    const rockDone = rocks.filter(r => r.status === 'complete').length
+    const issueTotal = issues.length
+    const issueResolved = issues.filter(i => i.status === 'resolved').length
+    const attendeeIds = presence.map(p => p.user_id)
+    await supabase.from('meeting_sessions').insert({
+      room_id: roomId,
+      meeting_date: new Date().toISOString().split('T')[0],
+      rating: concludeRating,
+      cascading_messages: concludeCascading,
+      todo_stats: { total: todoTotal, completed: todoCompleted },
+      rock_stats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
+      issue_stats: { total: issueTotal, resolved: issueResolved },
+      attendees: attendeeIds,
+      recorded_by: user.id,
+    })
+    setConcludeRating(null)
+    setConcludeCascading('')
+  }, [roomId, user, todos, rocks, issues, presence, concludeRating, concludeCascading])
+
   return (
     <MeetingContext.Provider value={{
       room, members, presence, currentSection,
@@ -504,6 +535,9 @@ export function MeetingProvider({ roomId, children }: Props) {
       issues, issueVotes, issueNotes, discussingIssueId,
       addIssue, voteIssue, setDiscussing, updateIssueDraft,
       solveIssue, addIssueNote, issueToTodo,
+      // Phase 4: Conclude
+      concludeRating, concludeCascading,
+      setConcludeRating, setConcludeCascading, recordSession,
     }}>
       {children}
     </MeetingContext.Provider>
