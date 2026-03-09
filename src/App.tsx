@@ -6,6 +6,8 @@ import DashboardPage from './pages/DashboardPage'
 import PlanPage from './pages/PlanPage'
 import TeamPage from './pages/TeamPage'
 import { IssuesPage, TodosPage, RocksPage } from './pages/OtherPages'
+import RoomsPage from './pages/meeting/RoomsPage'
+import MeetingRoomPage from './pages/meeting/MeetingRoomPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/issues" element={<ProtectedRoute><IssuesPage /></ProtectedRoute>} />
           <Route path="/todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
           <Route path="/rocks" element={<ProtectedRoute><RocksPage /></ProtectedRoute>} />
+          <Route path="/rooms" element={<ProtectedRoute><RoomsPage /></ProtectedRoute>} />
+          <Route path="/meeting/:roomId" element={<ProtectedRoute><MeetingRoomPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
