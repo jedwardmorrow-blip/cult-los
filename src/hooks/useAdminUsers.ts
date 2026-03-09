@@ -26,7 +26,7 @@ export interface AuditEntry {
   target_profile?: { full_name: string; email: string }
 }
 
-interface CreateUserPayload {
+export interface CreateUserPayload {
   email: string
   password: string
   full_name: string
@@ -34,7 +34,7 @@ interface CreateUserPayload {
   permission_level: 'admin' | 'member'
 }
 
-interface UpdateUserPayload {
+export interface UpdateUserPayload {
   user_id: string
   full_name?: string
   role?: string
@@ -44,12 +44,13 @@ interface UpdateUserPayload {
   password?: string
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://blcvkropuiadheukhniu.supabase.co'
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://blcvkropuiadheukhniu.supabase.co'
 
 async function callAdminFunction(
   method: string,
   token: string,
-  body?: Record<string, unknown>
+  body?: object
 ) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-users`, {
     method,
