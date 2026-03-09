@@ -11,6 +11,7 @@ import { IssuesPage, TodosPage, RocksPage } from './pages/OtherPages'
 import RoomsPage from './pages/meeting/RoomsPage'
 import MeetingRoomPage from './pages/meeting/MeetingRoomPage'
 import PersonalTodosPage from './pages/PersonalTodosPage'
+import CalendarPage from './pages/CalendarPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/rocks" element={<ProtectedRoute><RocksPage /></ProtectedRoute>} />
           <Route path="/rooms" element={<ProtectedRoute><RoomsPage /></ProtectedRoute>} />
           <Route path="/meeting/:roomId" element={<ProtectedRoute><MeetingRoomPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
