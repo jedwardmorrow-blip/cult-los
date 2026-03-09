@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/LoginPage'
+import AuthCallback from './pages/AuthCallback'
 import DashboardPage from './pages/DashboardPage'
 import PlanPage from './pages/PlanPage'
 import TeamPage from './pages/TeamPage'
@@ -30,6 +31,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/plan" element={<ProtectedRoute><PlanPage /></ProtectedRoute>} />
           <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
