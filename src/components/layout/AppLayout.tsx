@@ -15,6 +15,7 @@ import {
   Radio,
   ShieldCheck,
   ListChecks,
+  Calendar,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/rocks', icon: BarChart2, label: 'Rocks & Scorecard' },
   { path: '/todos', icon: CheckSquare, label: 'To-Dos' },
   { path: '/my-todos', icon: ListChecks, label: 'My Checklist' },
+  { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/issues', icon: AlertCircle, label: 'Issues (IDS)' },
   { path: '/rooms', icon: Radio, label: 'L10 Meetings' },
   { path: '/team', icon: Users, label: 'Team' },
