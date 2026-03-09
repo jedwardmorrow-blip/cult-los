@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import {
   LayoutDashboard, Target, CheckSquare, AlertCircle,
-  BarChart2, Users, LogOut, ChevronRight, Building2
+  BarChart2, Users, LogOut, ChevronRight, Building2, Radio
 } from 'lucide-react'
 
 interface LayoutProps { children: ReactNode }
@@ -14,6 +14,7 @@ const navItems = [
   { path: '/rocks', icon: BarChart2, label: 'Rocks & Scorecard' },
   { path: '/todos', icon: CheckSquare, label: 'To-Dos' },
   { path: '/issues', icon: AlertCircle, label: 'Issues (IDS)' },
+  { path: '/rooms', icon: Radio, label: 'L10 Meetings' },
   { path: '/team', icon: Users, label: 'Team' },
 ]
 
@@ -82,8 +83,8 @@ export default function AppLayout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8 animate-fade-in">
+      <main className="flex-1 overflow-hidden">
+        <div className={`h-full ${location.pathname.startsWith('/meeting/') ? '' : 'p-8 overflow-y-auto'} animate-fade-in`}>
           {children}
         </div>
       </main>
