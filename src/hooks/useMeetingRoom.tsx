@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
-import { Rock, Todo, ScorecardMetric, ScorecardEntry } from '../types'
+import { Rock, Todo, Issue, ScorecardMetric, ScorecardEntry } from '../types'
 import {
   MeetingRoom, RoomMember, PresenceUser, MeetingTimerState,
-  SectionId, SECTIONS, MeetingContextType, MeetingSegue, MeetingHeadline
+  SectionId, SECTIONS, MeetingContextType, MeetingSegue, MeetingHeadline,
+  IssueVote, IssueNote
 } from '../types/meeting'
 
 const MeetingContext = createContext<MeetingContextType | undefined>(undefined)
@@ -31,6 +32,12 @@ export function MeetingProvider({ roomId, children }: Props) {
   const [scorecardMetrics, setScorecardMetrics] = useState<ScorecardMetric[]>([])
   const [scorecardEntries, setScorecardEntries] = useState<ScorecardEntry[]>([])
 
+  // Phase 3: IDS state
+  const [issues, setIssues] = useState<Issue[]>([])
+  const [issueVotes, setIssueVotes] = useState<IssueVote[]>([])
+  const [issueNotes, setIssueNotes] = useState<IssueNote[]>([])
+  const [discussingIssueId, setDiscussingIssueId] = useState<string | null>(null)
+
   // ─── Load room + members ───
   useEffect(() => {
     if (!roomId) return
@@ -42,6 +49,9 @@ export function MeetingProvider({ roomId, children }: Props) {
     loadRocks()
     loadTodos()
     loadScorecard()
+    loadIssues()
+    loadIssueVotes()
+    loadIssueNotes()
   }, [roomId])
 
   async function loadRoom() {
@@ -126,6 +136,45 @@ export function MeetingProvider({ roomId, children }: Props) {
     }
   }
 
+  async function loadIssues() {
+    const { data } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('sort_order', { ascending: true })
+    setIssues(data || [])
+  }
+
+  async function loadIssueVotes() {
+    // Load all votes for issues in this room
+    const { data: roomIssues } = await supabase
+      .from('issues')
+      .select('id')
+      .eq('room_id', roomId)
+    if (!roomIssues || roomIssues.length === 0) { setIssueVotes([]); return }
+    const issueIds = roomIssues.map(i => i.id)
+    const { data } = await supabase
+      .from('issue_votes')
+      .select('*')
+      .in('issue_id', issueIds)
+    setIssueVotes(data || [])
+  }
+
+  async function loadIssueNotes() {
+    const { data: roomIssues } = await supabase
+      .from('issues')
+      .select('id')
+      .eq('room_id', roomId)
+    if (!roomIssues || roomIssues.length === 0) { setIssueNotes([]); return }
+    const issueIds = roomIssues.map(i => i.id)
+    const { data } = await supabase
+      .from('issue_notes')
+      .select('*, profiles(full_name)')
+      .in('issue_id', issueIds)
+      .order('created_at', { ascending: true })
+    setIssueNotes(data || [])
+  }
+
   // ─── Presence tracking ───
   useEffect(() => {
     if (!roomId || !user || !profile) return
@@ -165,7 +214,7 @@ export function MeetingProvider({ roomId, children }: Props) {
     }
   }, [roomId, user, profile])
 
-  // ─── Broadcast channel for timer + section sync ───
+  // ─── Broadcast channel for timer + section + IDS discussing sync ───
   useEffect(() => {
     if (!roomId) return
 
@@ -177,6 +226,9 @@ export function MeetingProvider({ roomId, children }: Props) {
       })
       .on('broadcast', { event: 'section' }, ({ payload }) => {
         setCurrentSection(payload.sectionId as SectionId)
+      })
+      .on('broadcast', { event: 'discussing' }, ({ payload }) => {
+        setDiscussingIssueId(payload.issueId || null)
       })
       .subscribe()
 
@@ -216,6 +268,16 @@ export function MeetingProvider({ roomId, children }: Props) {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'scorecard_entries'
       }, () => { loadScorecard() })
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'issues',
+        filter: `room_id=eq.${roomId}`
+      }, () => { loadIssues() })
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'issue_votes'
+      }, () => { loadIssueVotes() })
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'issue_notes'
+      }, () => { loadIssueNotes() })
       .subscribe()
 
     return () => { channel.unsubscribe() }
@@ -350,6 +412,85 @@ export function MeetingProvider({ roomId, children }: Props) {
     }, { onConflict: 'metric_id,week_start' })
   }, [user])
 
+  // ─── Phase 3: IDS CRUD operations ───
+
+  const addIssue = useCallback(async (title: string, description?: string, priority?: string) => {
+    if (!user || !profile) return
+    const maxOrder = issues.reduce((max, i) => Math.max(max, i.sort_order || 0), 0)
+    await supabase.from('issues').insert({
+      room_id: roomId,
+      title,
+      description: description || '',
+      priority: priority || 'medium',
+      status: 'open',
+      submitted_by_name: profile.full_name || 'Unknown',
+      sort_order: maxOrder + 1,
+    })
+  }, [roomId, user, profile, issues])
+
+  const voteIssue = useCallback(async (issueId: string) => {
+    if (!user) return
+    // Toggle: if already voted, remove vote; otherwise add vote
+    const existing = issueVotes.find(v => v.issue_id === issueId && v.profile_id === user.id)
+    if (existing) {
+      await supabase.from('issue_votes').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('issue_votes').insert({
+        issue_id: issueId,
+        profile_id: user.id,
+      })
+    }
+  }, [user, issueVotes])
+
+  const setDiscussing = useCallback((issueId: string | null) => {
+    setDiscussingIssueId(issueId)
+    // Broadcast to other participants
+    supabase.channel(`meeting:${roomId}`).send({
+      type: 'broadcast', event: 'discussing', payload: { issueId },
+    })
+  }, [roomId])
+
+  const updateIssueDraft = useCallback(async (issueId: string, draft: string) => {
+    await supabase.from('issues').update({
+      resolution_draft: draft,
+      updated_at: new Date().toISOString(),
+    }).eq('id', issueId)
+  }, [])
+
+  const solveIssue = useCallback(async (issueId: string, solution: string) => {
+    await supabase.from('issues').update({
+      status: 'resolved',
+      solution,
+      resolved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', issueId)
+    // If this was the discussing issue, clear it
+    if (discussingIssueId === issueId) {
+      setDiscussing(null)
+    }
+  }, [discussingIssueId, setDiscussing])
+
+  const addIssueNote = useCallback(async (issueId: string, text: string) => {
+    if (!user) return
+    await supabase.from('issue_notes').insert({
+      issue_id: issueId,
+      profile_id: user.id,
+      text,
+    })
+  }, [user])
+
+  const issueToTodo = useCallback(async (issue: Issue) => {
+    if (!user) return
+    await supabase.from('todos').insert({
+      room_id: roomId,
+      owner_id: user.id,
+      title: issue.title,
+      status: 'open',
+      from_issue_id: issue.id,
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    })
+  }, [roomId, user])
+
   return (
     <MeetingContext.Provider value={{
       room, members, presence, currentSection,
@@ -359,6 +500,10 @@ export function MeetingProvider({ roomId, children }: Props) {
       segues, headlines, rocks, todos, scorecardMetrics, scorecardEntries,
       upsertSegue, addHeadline, toggleHeadline, removeHeadline, dropHeadlineToIDS,
       cycleRockStatus, addTodo, updateTodoStatus, addScorecardEntry,
+      // Phase 3: IDS
+      issues, issueVotes, issueNotes, discussingIssueId,
+      addIssue, voteIssue, setDiscussing, updateIssueDraft,
+      solveIssue, addIssueNote, issueToTodo,
     }}>
       {children}
     </MeetingContext.Provider>
