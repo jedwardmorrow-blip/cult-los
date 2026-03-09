@@ -67,6 +67,27 @@ export interface PresenceUser {
   online_at: string
 }
 
+export interface MeetingSegue {
+  id: string
+  room_id: string
+  meeting_id?: string
+  profile_id: string
+  personal?: string
+  professional?: string
+  updated_at: string
+}
+
+export interface MeetingHeadline {
+  id: string
+  room_id: string
+  meeting_id?: string
+  profile_id: string
+  text: string
+  is_done: boolean
+  dropped_to_ids?: boolean
+  created_at: string
+}
+
 export interface MeetingContextType {
   room: MeetingRoom | null
   members: RoomMember[]
@@ -78,4 +99,21 @@ export interface MeetingContextType {
   stopTimer: () => void
   resetTimer: () => void
   loading: boolean
+  // Phase 2: Section data
+  segues: MeetingSegue[]
+  headlines: MeetingHeadline[]
+  rocks: import('./index').Rock[]
+  todos: import('./index').Todo[]
+  scorecardMetrics: import('./index').ScorecardMetric[]
+  scorecardEntries: import('./index').ScorecardEntry[]
+  // Phase 2: CRUD
+  upsertSegue: (personal: string, professional: string) => Promise<void>
+  addHeadline: (text: string) => Promise<void>
+  toggleHeadline: (id: string, isDone: boolean) => Promise<void>
+  removeHeadline: (id: string) => Promise<void>
+  dropHeadlineToIDS: (headline: MeetingHeadline) => Promise<void>
+  cycleRockStatus: (id: string, currentStatus: string) => Promise<void>
+  addTodo: (title: string, ownerId?: string) => Promise<void>
+  updateTodoStatus: (id: string, status: string) => Promise<void>
+  addScorecardEntry: (metricId: string, weekStart: string, value: number) => Promise<void>
 }
