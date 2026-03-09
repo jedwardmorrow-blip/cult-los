@@ -124,9 +124,9 @@ export interface Issue {
   status: 'open' | 'in_discussion' | 'resolved' | 'dropped'
   resolution?: string
   resolution_draft?: string
+  solution?: string
   submitted_by_name?: string
   sort_order?: number
-  discussing?: boolean
   resolved_at?: string
   created_at: string
   updated_at: string
