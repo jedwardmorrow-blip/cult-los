@@ -3,6 +3,8 @@ export interface Profile {
   email: string
   full_name: string
   role: string
+  permission_level: 'owner' | 'admin' | 'member'
+  is_hidden: boolean
   slack_id?: string
   avatar_url?: string
   is_active: boolean
