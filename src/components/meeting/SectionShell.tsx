@@ -1,4 +1,5 @@
-import { SectionId } from '../../types/meeting'
+import { SectionId, SECTIONS } from '../../types/meeting'
+import MeetingErrorBoundary from './ErrorBoundary'
 import SegueSection from './sections/SegueSection'
 import ScorecardSection from './sections/ScorecardSection'
 import RocksSection from './sections/RocksSection'
@@ -25,9 +26,13 @@ export default function SectionShell({ sectionId }: Props) {
   const Component = SECTION_COMPONENTS[sectionId]
   if (!Component) return null
 
+  const sectionLabel = SECTIONS.find(s => s.id === sectionId)?.label || sectionId
+
   return (
-    <div className="flex-1 animate-fade-in">
-      <Component />
-    </div>
+    <MeetingErrorBoundary key={sectionId} sectionName={sectionLabel}>
+      <div className="flex-1 animate-fade-in">
+        <Component />
+      </div>
+    </MeetingErrorBoundary>
   )
 }
