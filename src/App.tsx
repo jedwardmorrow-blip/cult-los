@@ -5,17 +5,21 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import PlanPage from './pages/PlanPage'
 import TeamPage from './pages/TeamPage'
+import AdminPanel from './pages/AdminPanel'
 import { IssuesPage, TodosPage, RocksPage } from './pages/OtherPages'
 import RoomsPage from './pages/meeting/RoomsPage'
 import MeetingRoomPage from './pages/meeting/MeetingRoomPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return (
-    <div className="min-h-screen bg-cult-black flex items-center justify-center">
-      <div className="font-mono text-xs text-cult-text tracking-[0.4em] animate-pulse">CULT LOS</div>
-    </div>
-  )
+
+  if (loading)
+    return (
+      <div className="min-h-screen bg-cult-black flex items-center justify-center">
+        <div className="font-mono text-xs text-cult-text tracking-[0.4em] animate-pulse">CULT LOS</div>
+      </div>
+    )
+
   if (!user) return <Navigate to="/login" replace />
   return <AppLayout>{children}</AppLayout>
 }
@@ -34,6 +38,7 @@ export default function App() {
           <Route path="/rocks" element={<ProtectedRoute><RocksPage /></ProtectedRoute>} />
           <Route path="/rooms" element={<ProtectedRoute><RoomsPage /></ProtectedRoute>} />
           <Route path="/meeting/:roomId" element={<ProtectedRoute><MeetingRoomPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
