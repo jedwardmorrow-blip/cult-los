@@ -88,6 +88,23 @@ export interface MeetingHeadline {
   created_at: string
 }
 
+export interface IssueVote {
+  id: string
+  issue_id: string
+  profile_id: string
+  created_at: string
+}
+
+export interface IssueNote {
+  id: string
+  issue_id: string
+  profile_id: string
+  text: string
+  created_at: string
+  // Joined
+  profiles?: { full_name: string }
+}
+
 export interface MeetingContextType {
   room: MeetingRoom | null
   members: RoomMember[]
@@ -116,4 +133,16 @@ export interface MeetingContextType {
   addTodo: (title: string, ownerId?: string) => Promise<void>
   updateTodoStatus: (id: string, status: string) => Promise<void>
   addScorecardEntry: (metricId: string, weekStart: string, value: number) => Promise<void>
+  // Phase 3: IDS
+  issues: import('./index').Issue[]
+  issueVotes: IssueVote[]
+  issueNotes: IssueNote[]
+  discussingIssueId: string | null
+  addIssue: (title: string, description?: string, priority?: string) => Promise<void>
+  voteIssue: (issueId: string) => Promise<void>
+  setDiscussing: (issueId: string | null) => void
+  updateIssueDraft: (issueId: string, draft: string) => Promise<void>
+  solveIssue: (issueId: string, solution: string) => Promise<void>
+  addIssueNote: (issueId: string, text: string) => Promise<void>
+  issueToTodo: (issue: import('./index').Issue) => Promise<void>
 }
