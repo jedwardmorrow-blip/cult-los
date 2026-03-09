@@ -10,16 +10,16 @@ import AdminPanel from './pages/AdminPanel'
 import { IssuesPage, TodosPage, RocksPage } from './pages/OtherPages'
 import RoomsPage from './pages/meeting/RoomsPage'
 import MeetingRoomPage from './pages/meeting/MeetingRoomPage'
+import PersonalTodosPage from './pages/PersonalTodosPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
-  if (loading)
-    return (
-      <div className="min-h-screen bg-cult-black flex items-center justify-center">
-        <div className="font-mono text-xs text-cult-text tracking-[0.4em] animate-pulse">CULT LOS</div>
-      </div>
-    )
+  if (loading) return (
+    <div className="min-h-screen bg-cult-black flex items-center justify-center">
+      <div className="font-mono text-xs text-cult-text tracking-[0.4em] animate-pulse">CULT LOS</div>
+    </div>
+  )
 
   if (!user) return <Navigate to="/login" replace />
   return <AppLayout>{children}</AppLayout>
@@ -37,6 +37,7 @@ export default function App() {
           <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
           <Route path="/issues" element={<ProtectedRoute><IssuesPage /></ProtectedRoute>} />
           <Route path="/todos" element={<ProtectedRoute><TodosPage /></ProtectedRoute>} />
+          <Route path="/my-todos" element={<ProtectedRoute><PersonalTodosPage /></ProtectedRoute>} />
           <Route path="/rocks" element={<ProtectedRoute><RocksPage /></ProtectedRoute>} />
           <Route path="/rooms" element={<ProtectedRoute><RoomsPage /></ProtectedRoute>} />
           <Route path="/meeting/:roomId" element={<ProtectedRoute><MeetingRoomPage /></ProtectedRoute>} />
