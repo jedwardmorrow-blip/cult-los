@@ -163,3 +163,31 @@ export interface Checkin {
   rating?: number
   submitted_at: string
 }
+
+// ── Phase 5: Personal Todos ──
+
+export interface PersonalTodo {
+  id: string
+  owner_id: string
+  title: string
+  description?: string
+  due_date?: string
+  is_recurring: boolean
+  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'monthly'
+  status: 'pending' | 'complete' | 'dropped'
+  completed_at?: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
+  // Virtual: for recurring items, today's completion
+  completed_today?: boolean
+}
+
+export interface PersonalTodoCompletion {
+  id: string
+  todo_id: string
+  completed_date: string
+  completed_at: string
+}
