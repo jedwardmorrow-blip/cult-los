@@ -14,6 +14,7 @@ import {
   Building2,
   Radio,
   ShieldCheck,
+  ListChecks,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ const navItems = [
   { path: '/plan', icon: Target, label: 'My 90-Day Plan' },
   { path: '/rocks', icon: BarChart2, label: 'Rocks & Scorecard' },
   { path: '/todos', icon: CheckSquare, label: 'To-Dos' },
+  { path: '/my-todos', icon: ListChecks, label: 'My Checklist' },
   { path: '/issues', icon: AlertCircle, label: 'Issues (IDS)' },
   { path: '/rooms', icon: Radio, label: 'L10 Meetings' },
   { path: '/team', icon: Users, label: 'Team' },
@@ -79,7 +81,7 @@ export default function AppLayout({ children }: LayoutProps) {
             )
           })}
 
-          {/* Admin nav item â only visible to admin/owner */}
+          {/* Admin nav item – only visible to admin/owner */}
           {(isAdmin || isOwner) && (
             <Link
               to="/admin"
