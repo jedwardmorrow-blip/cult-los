@@ -4,7 +4,13 @@ import AdminGate from '../components/AdminGate'
 import UserList from '../components/admin/UserList'
 import UserForm from '../components/admin/UserForm'
 import AuditLog from '../components/admin/AuditLog'
-import { useAdminUsers, useAuditLog, AdminProfile } from '../hooks/useAdminUsers'
+import {
+  useAdminUsers,
+  useAuditLog,
+  AdminProfile,
+  CreateUserPayload,
+  UpdateUserPayload,
+} from '../hooks/useAdminUsers'
 
 type Tab = 'users' | 'audit'
 
@@ -27,17 +33,14 @@ function AdminContent() {
   }
 
   async function handleToggleActive(user: AdminProfile) {
-    await updateUser({
-      user_id: user.id,
-      is_active: !user.is_active,
-    })
+    await updateUser({ user_id: user.id, is_active: !user.is_active })
   }
 
   async function handleSave(data: Record<string, unknown>) {
     if (editingUser) {
-      await updateUser(data as Parameters<typeof updateUser>[0])
+      await updateUser(data as unknown as UpdateUserPayload)
     } else {
-      await createUser(data as Parameters<typeof createUser>[0])
+      await createUser(data as unknown as CreateUserPayload)
     }
   }
 
@@ -51,7 +54,9 @@ function AdminContent() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-cult-white tracking-wider">ADMIN</h1>
-        <p className="text-xs font-mono text-cult-text mt-1">Manage users, permissions, and system activity</p>
+        <p className="text-xs font-mono text-cult-text mt-1">
+          Manage users, permissions, and system activity
+        </p>
       </div>
 
       {/* Error banner */}
@@ -82,7 +87,9 @@ function AdminContent() {
               {tab.count !== undefined && (
                 <span
                   className={`ml-1 px-1.5 py-0.5 text-[10px] rounded-sm ${
-                    active ? 'bg-cult-gold/20 text-cult-gold' : 'bg-cult-border text-cult-text'
+                    active
+                      ? 'bg-cult-gold/20 text-cult-gold'
+                      : 'bg-cult-border text-cult-text'
                   }`}
                 >
                   {tab.count}
@@ -107,7 +114,11 @@ function AdminContent() {
 
       {/* User form modal */}
       {formOpen && (
-        <UserForm user={editingUser} onSave={handleSave} onClose={() => setFormOpen(false)} />
+        <UserForm
+          user={editingUser}
+          onSave={handleSave}
+          onClose={() => setFormOpen(false)}
+        />
       )}
     </div>
   )
