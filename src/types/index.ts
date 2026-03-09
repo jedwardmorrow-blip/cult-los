@@ -48,6 +48,7 @@ export interface Goal {
 export interface Rock {
   id: string
   business_id?: string
+  room_id?: string
   owner_id?: string
   quarter: string
   title: string
@@ -58,11 +59,14 @@ export interface Rock {
   completed_at?: string
   created_at: string
   updated_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
 }
 
 export interface ScorecardMetric {
   id: string
   business_id?: string
+  room_id?: string
   owner_id?: string
   title: string
   description?: string
@@ -71,6 +75,8 @@ export interface ScorecardMetric {
   frequency: 'daily' | 'weekly' | 'monthly'
   is_active: boolean
   created_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
 }
 
 export interface ScorecardEntry {
@@ -86,6 +92,7 @@ export interface ScorecardEntry {
 export interface Meeting {
   id: string
   business_id?: string
+  room_id?: string
   title: string
   meeting_date: string
   facilitator_id?: string
@@ -98,6 +105,8 @@ export interface Meeting {
   conclude_notes?: string
   rating?: number
   status: 'scheduled' | 'in_progress' | 'completed'
+  current_section?: string
+  discussing_issue_id?: string
   created_at: string
   updated_at: string
 }
@@ -105,6 +114,7 @@ export interface Meeting {
 export interface Issue {
   id: string
   business_id?: string
+  room_id?: string
   reported_by?: string
   owner_id?: string
   meeting_id?: string
@@ -113,6 +123,10 @@ export interface Issue {
   priority: 'low' | 'medium' | 'high' | 'critical'
   status: 'open' | 'in_discussion' | 'resolved' | 'dropped'
   resolution?: string
+  resolution_draft?: string
+  submitted_by_name?: string
+  sort_order?: number
+  discussing?: boolean
   resolved_at?: string
   created_at: string
   updated_at: string
@@ -121,14 +135,19 @@ export interface Issue {
 export interface Todo {
   id: string
   business_id?: string
+  room_id?: string
   owner_id?: string
   meeting_id?: string
   title: string
   due_date?: string
-  status: 'open' | 'complete' | 'dropped'
+  status: 'open' | 'in_progress' | 'stuck' | 'complete' | 'dropped'
+  assignee_name?: string
+  from_issue_id?: string
   completed_at?: string
   created_at: string
   updated_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
 }
 
 export interface Checkin {

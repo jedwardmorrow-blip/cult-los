@@ -5,6 +5,7 @@ import { SECTIONS, SectionId } from '../../types/meeting'
 import MeetingTimer from './MeetingTimer'
 import MeetingSidebar from './MeetingSidebar'
 import SectionShell from './SectionShell'
+import FloatingTodoPanel from './FloatingTodoPanel'
 import {
   Smile, BarChart3, Target, Newspaper, ListTodo,
   MessageSquare, CheckCircle2, ArrowLeft, Settings
@@ -25,10 +26,14 @@ export default function MeetingRoom() {
   const { room, currentSection, setCurrentSection, loading } = useMeeting()
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      // Don't capture when typing in inputs
       if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return
+
       const idx = SECTIONS.findIndex(s => s.id === currentSection)
+
       if (e.key === 'ArrowRight' && idx < SECTIONS.length - 1) {
         e.preventDefault()
         setCurrentSection(SECTIONS[idx + 1].id)
@@ -37,6 +42,7 @@ export default function MeetingRoom() {
         setCurrentSection(SECTIONS[idx - 1].id)
       }
     }
+
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [currentSection, setCurrentSection])
@@ -65,12 +71,20 @@ export default function MeetingRoom() {
 
   return (
     <div className="flex h-full bg-cult-black overflow-hidden">
+      {/* Sidebar */}
       <MeetingSidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
+
+      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
         <header className="flex-shrink-0 border-b border-cult-border bg-cult-dark px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/rooms')} className="text-cult-text hover:text-cult-white transition-colors" title="Back to rooms">
+              <button
+                onClick={() => navigate('/rooms')}
+                className="text-cult-text hover:text-cult-white transition-colors"
+                title="Back to rooms"
+              >
                 <ArrowLeft size={18} />
               </button>
               <div>
@@ -83,29 +97,33 @@ export default function MeetingRoom() {
             <MeetingTimer />
           </div>
         </header>
+
+        {/* Section tabs */}
         <nav className="flex-shrink-0 border-b border-cult-border bg-cult-dark/50 px-6">
           <div className="flex gap-1 overflow-x-auto py-2">
             {SECTIONS.map((section, idx) => {
               const Icon = SECTION_ICONS[section.id]
               const active = section.id === currentSection
               const completed = idx < currentIdx
+
               return (
                 <button
                   key={section.id}
                   onClick={() => setCurrentSection(section.id)}
-                  className={[
-                    'flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-all duration-150',
-                    active
+                  className={`
+                    flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium whitespace-nowrap transition-all duration-150
+                    ${active
                       ? 'bg-cult-gold/15 text-cult-gold border border-cult-gold/30'
                       : completed
                         ? 'text-cult-gold/60 hover:text-cult-gold hover:bg-cult-gold/5'
                         : 'text-cult-text hover:text-cult-white hover:bg-cult-muted'
-                  ].join(' ')}
-                  title={section.label + ' (' + section.minutes + 'm)'}
+                    }
+                  `}
+                  title={`${section.label} (${section.minutes}m)`}
                 >
                   <Icon size={14} />
                   <span>{section.label}</span>
-                  <span className={'font-mono text-[10px] ' + (active ? 'text-cult-gold/70' : 'text-cult-text/50')}>
+                  <span className={`font-mono text-[10px] ${active ? 'text-cult-gold/70' : 'text-cult-text/50'}`}>
                     {section.minutes}m
                   </span>
                 </button>
@@ -113,9 +131,16 @@ export default function MeetingRoom() {
             })}
           </div>
         </nav>
+
+        {/* Section content area */}
         <div className="flex-1 overflow-y-auto p-6">
           <SectionShell sectionId={currentSection} />
         </div>
+
+        {/* Floating todo panel (hidden on Todos section) */}
+        <FloatingTodoPanel />
+
+        {/* Bottom nav: prev/next */}
         <footer className="flex-shrink-0 border-t border-cult-border bg-cult-dark px-6 py-3">
           <div className="flex items-center justify-between">
             <button
@@ -123,16 +148,16 @@ export default function MeetingRoom() {
               disabled={currentIdx === 0}
               className="btn-ghost text-xs disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {currentIdx > 0 ? '\u2190 ' + SECTIONS[currentIdx - 1].label : '\u2190'}
+              ← {currentIdx > 0 ? SECTIONS[currentIdx - 1].label : ''}
             </button>
             <div className="flex items-center gap-1.5">
               {SECTIONS.map((s, i) => (
                 <div
                   key={s.id}
-                  className={'w-2 h-2 rounded-full transition-colors ' + (
+                  className={`w-2 h-2 rounded-full transition-colors ${
                     i === currentIdx ? 'bg-cult-gold' :
                     i < currentIdx ? 'bg-cult-gold/40' : 'bg-cult-muted'
-                  )}
+                  }`}
                 />
               ))}
             </div>
@@ -141,7 +166,7 @@ export default function MeetingRoom() {
               disabled={currentIdx === SECTIONS.length - 1}
               className="btn-ghost text-xs disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {currentIdx < SECTIONS.length - 1 ? SECTIONS[currentIdx + 1].label + ' \u2192' : '\u2192'}
+              {currentIdx < SECTIONS.length - 1 ? SECTIONS[currentIdx + 1].label : ''} →
             </button>
           </div>
         </footer>
