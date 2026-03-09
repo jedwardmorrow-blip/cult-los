@@ -1,12 +1,24 @@
 import { ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { usePermissions } from '../../hooks/usePermissions'
 import {
-  LayoutDashboard, Target, CheckSquare, AlertCircle,
-  BarChart2, Users, LogOut, ChevronRight, Building2, Radio
+  LayoutDashboard,
+  Target,
+  CheckSquare,
+  AlertCircle,
+  BarChart2,
+  Users,
+  LogOut,
+  ChevronRight,
+  Building2,
+  Radio,
+  ShieldCheck,
 } from 'lucide-react'
 
-interface LayoutProps { children: ReactNode }
+interface LayoutProps {
+  children: ReactNode
+}
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -20,6 +32,7 @@ const navItems = [
 
 export default function AppLayout({ children }: LayoutProps) {
   const { profile, signOut } = useAuth()
+  const { isAdmin, isOwner } = usePermissions()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -65,6 +78,17 @@ export default function AppLayout({ children }: LayoutProps) {
               </Link>
             )
           })}
+
+          {/* Admin nav item â only visible to admin/owner */}
+          {(isAdmin || isOwner) && (
+            <Link
+              to="/admin"
+              className={location.pathname === '/admin' ? 'nav-item-active' : 'nav-item'}
+            >
+              <ShieldCheck size={15} />
+              <span className="text-xs font-medium">Admin</span>
+            </Link>
+          )}
         </nav>
 
         <div className="px-3 py-4 border-t border-cult-border">
