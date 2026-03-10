@@ -104,7 +104,7 @@ export default function CalendarPage() {
         const [personalRes, teamRes] = await Promise.all([
           supabase
             .from('personal_todos')
-            .select('*, profiles(id, full_name, avatar_url)')
+            .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
             .neq('status', 'dropped'),
           supabase
             .from('todos')
@@ -122,7 +122,7 @@ export default function CalendarPage() {
         const [personalRes, teamRes] = await Promise.all([
           supabase
             .from('personal_todos')
-            .select('*, profiles(id, full_name, avatar_url)')
+            .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
             .eq('owner_id', user.id)
             .neq('status', 'dropped'),
           supabase
