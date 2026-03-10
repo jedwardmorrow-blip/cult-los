@@ -191,3 +191,21 @@ export interface PersonalTodoCompletion {
   completed_date: string
   completed_at: string
 }
+
+export interface ClaudeRecommendation {
+  id: string
+  target_type: string
+  target_id: string | null
+  owner_id: string | null
+  title: string
+  recommendation: string
+  priority_level: string
+  reasoning: string | null
+  category: string | null
+  source_session: string | null
+  status: string
+  created_at: string | null
+  expires_at: string | null
+  dismissed_at: string | null
+  acted_on_at: string | null
+}
