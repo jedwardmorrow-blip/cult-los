@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useMeeting } from '../../../hooks/useMeetingRoom'
+import { useToast } from '../../ui/Toast'
+import { useConfetti, ConfettiOverlay } from '../../ui/Confetti'
 import {
   CheckCircle2, Star, Copy, Check, Save,
-  ChevronDown, ChevronUp, Target, ListTodo, MessageSquare,
+  ChevronDown, ChevronUp, Target, ListTodo, MessageSquare, Users, Flame,
 } from 'lucide-react'
 
 export default function ConcludeSection() {
@@ -10,8 +12,11 @@ export default function ConcludeSection() {
     todos, rocks, issues, members, presence,
     concludeRating, concludeCascading,
     setConcludeRating, setConcludeCascading, recordSession,
+    meetingStreak,
   } = useMeeting()
 
+  const { showToast } = useToast()
+  const confetti = useConfetti()
   const [copied, setCopied] = useState(false)
   const [recorded, setRecorded] = useState(false)
   const [showOpenTodos, setShowOpenTodos] = useState(false)
@@ -78,39 +83,86 @@ export default function ConcludeSection() {
       lines.push(`Rating: ${concludeRating}/10`)
     }
 
+    if (meetingStreak > 1) {
+      lines.push(`Meeting Streak: ${meetingStreak} weeks`)
+    }
+
     await navigator.clipboard.writeText(lines.join('\n'))
     setCopied(true)
+    showToast('Recap copied to clipboard', 'success')
     setTimeout(() => setCopied(false), 2000)
   }
+
+  // A13: Attendees from presence
+  const attendeeNames = presence.map(p => p.name).filter(Boolean)
 
   async function handleRecordSession() {
     await recordSession()
     setRecorded(true)
+    confetti.fire()
+    showToast('Session recorded successfully!', 'success')
   }
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
+    <div className="max-w-3xl mx-auto">
+      <ConfettiOverlay active={confetti.active} />
+
       <div className="text-center mb-6">
         <p className="text-xs font-mono text-cult-text/60 tracking-wider uppercase">
           Recap to-dos, cascade messages, rate the meeting, and record the session
         </p>
       </div>
 
+      {/* A13: Attendees */}
+      {attendeeNames.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <Users size={12} className="text-cult-text/40" />
+          <span className="text-[10px] font-mono text-cult-text/40 tracking-wider">
+            Attendees: {attendeeNames.join(', ')}
+          </span>
+        </div>
+      )}
+
+      {/* A20: Meeting streak badge */}
+      {meetingStreak > 1 && (
+        <div className="flex items-center justify-center mb-5">
+          <div className={`
+            inline-flex items-center gap-2 px-4 py-2 rounded-full border
+            ${meetingStreak >= 10
+              ? 'bg-cult-gold/15 border-cult-gold/40 shadow-[0_0_16px_rgba(200,168,75,0.15)]'
+              : meetingStreak >= 5
+                ? 'bg-cult-gold/10 border-cult-gold/25'
+                : 'bg-cult-surface border-cult-border'
+            }
+          `}>
+            <Flame size={16} className={`${meetingStreak >= 10 ? 'text-cult-gold' : meetingStreak >= 5 ? 'text-cult-gold/70' : 'text-cult-text/50'}`} />
+            <span className={`text-sm font-mono font-bold tracking-wider ${
+              meetingStreak >= 10 ? 'text-cult-gold' : meetingStreak >= 5 ? 'text-cult-gold/80' : 'text-cult-white'
+            }`}>
+              {meetingStreak}
+            </span>
+            <span className="text-[10px] font-mono text-cult-text/50 tracking-wider uppercase">
+              week streak
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Stats Summary */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="rounded-lg border border-cult-border bg-cult-surface p-4 text-center">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+        <div className="rounded-lg border border-cult-border bg-cult-surface p-2.5 sm:p-4 text-center">
           <Target size={16} className="mx-auto mb-1.5 text-cult-gold/60" />
           <div className="text-lg font-display text-cult-white">{rockStats.onTrack}</div>
           <div className="text-[9px] font-mono text-cult-text/40 tracking-wider uppercase">On Track</div>
         </div>
-        <div className="rounded-lg border border-cult-border bg-cult-surface p-4 text-center">
+        <div className="rounded-lg border border-cult-border bg-cult-surface p-2.5 sm:p-4 text-center">
           <ListTodo size={16} className="mx-auto mb-1.5 text-cult-gold/60" />
           <div className="text-lg font-display text-cult-white">
             {todoStats.completed}<span className="text-cult-text/30 text-sm">/{todoStats.total}</span>
           </div>
           <div className="text-[9px] font-mono text-cult-text/40 tracking-wider uppercase">To-Dos Done</div>
         </div>
-        <div className="rounded-lg border border-cult-border bg-cult-surface p-4 text-center">
+        <div className="rounded-lg border border-cult-border bg-cult-surface p-2.5 sm:p-4 text-center">
           <MessageSquare size={16} className="mx-auto mb-1.5 text-cult-gold/60" />
           <div className="text-lg font-display text-cult-white">
             {issueStats.resolved}<span className="text-cult-text/30 text-sm">/{issueStats.total}</span>
@@ -168,12 +220,12 @@ export default function ConcludeSection() {
         <label className="block text-[10px] font-mono text-cult-text/40 tracking-wider uppercase mb-3">
           Rate This Meeting
         </label>
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 mb-2 flex-wrap">
           {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
             <button
               key={num}
               onClick={() => setConcludeRating(concludeRating === num ? null : num)}
-              className={`w-9 h-9 rounded-lg text-sm font-mono transition-all duration-150 ${
+              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs sm:text-sm font-mono transition-all duration-150 ${
                 concludeRating === num
                   ? 'bg-cult-gold text-cult-black font-bold shadow-[0_0_12px_rgba(200,168,75,0.3)]'
                   : concludeRating && num <= concludeRating
@@ -193,7 +245,7 @@ export default function ConcludeSection() {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
         <button
           onClick={handleCopyRecap}
           className="btn-ghost text-xs flex items-center gap-1.5"

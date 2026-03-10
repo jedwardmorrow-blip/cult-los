@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Goal, Rock, Todo, Issue } from '../types'
-import { Target, CheckSquare, AlertCircle, TrendingUp, ArrowRight, Circle } from 'lucide-react'
-import { format, differenceInDays, parseISO } from 'date-fns'
+import {
+  Target, CheckSquare, AlertCircle, TrendingUp, ArrowRight, Circle,
+  Flame, Calendar, Clock, Star, Users, Play,
+} from 'lucide-react'
+import ClaudeRecommendations from '../components/ClaudeRecommendations'
+import { format, differenceInDays, parseISO, isAfter, isBefore, addDays } from 'date-fns'
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', cls: 'text-cult-text', dot: 'bg-cult-muted' },
@@ -19,8 +23,28 @@ const PHASE_COLORS = {
   3: 'bg-purple-900/20 text-purple-300 border-purple-700/30',
 }
 
+// ── C5/C6 types ──
+interface MeetingRoomInfo {
+  id: string
+  name: string
+  cadence: string
+  next_meeting_day?: number // 0=Sun..6=Sat
+}
+
+interface RecentSession {
+  id: string
+  room_id: string
+  meeting_date: string
+  rating: number | null
+  todo_stats: any
+  rock_stats: any
+  issue_stats: any
+  room_name?: string
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [goals, setGoals] = useState<Goal[]>([])
   const [rocks, setRocks] = useState<Rock[]>([])
   const [todos, setTodos] = useState<Todo[]>([])
@@ -28,6 +52,12 @@ export default function DashboardPage() {
   const [northStar, setNorthStar] = useState<string>('')
   const [planDates, setPlanDates] = useState<{ start: string; end: string } | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // C5: Meeting room + streak state
+  const [rooms, setRooms] = useState<MeetingRoomInfo[]>([])
+  const [meetingStreak, setMeetingStreak] = useState(0)
+  // C6: Recent sessions
+  const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
 
   useEffect(() => { if (profile) fetchAll() }, [profile])
 
@@ -46,7 +76,81 @@ export default function DashboardPage() {
     setRocks(rocksRes.data || [])
     setTodos(todosRes.data || [])
     setIssues(issuesRes.data || [])
+
+    // C5/C6: Load meeting data
+    await loadMeetingData(profile.id)
+
     setLoading(false)
+  }
+
+  // C5: Load user's meeting rooms, streak, and recent sessions
+  async function loadMeetingData(userId: string) {
+    // Get rooms user belongs to
+    const { data: memberData } = await supabase
+      .from('room_members')
+      .select('room_id')
+      .eq('profile_id', userId)
+
+    if (!memberData || memberData.length === 0) return
+
+    const roomIds = memberData.map(m => m.room_id)
+
+    // Load room info
+    const { data: roomData } = await supabase
+      .from('meeting_rooms')
+      .select('id, name, cadence, next_meeting_day')
+      .in('id', roomIds)
+    if (roomData) setRooms(roomData)
+
+    // Load streak (from first room — primary L10)
+    const primaryRoomId = roomIds[0]
+    const { data: sessions } = await supabase
+      .from('meeting_sessions')
+      .select('meeting_date')
+      .eq('room_id', primaryRoomId)
+      .order('meeting_date', { ascending: false })
+      .limit(52)
+
+    if (sessions && sessions.length > 0) {
+      let streak = 1
+      for (let i = 0; i < sessions.length - 1; i++) {
+        const curr = new Date(sessions[i].meeting_date)
+        const prev = new Date(sessions[i + 1].meeting_date)
+        const daysBetween = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+        if (daysBetween <= 10) {
+          streak++
+        } else {
+          break
+        }
+      }
+      setMeetingStreak(streak)
+    }
+
+    // C6: Load recent sessions across all rooms
+    const { data: recentData } = await supabase
+      .from('meeting_sessions')
+      .select('id, room_id, meeting_date, rating, todo_stats, rock_stats, issue_stats')
+      .in('room_id', roomIds)
+      .order('meeting_date', { ascending: false })
+      .limit(5)
+
+    if (recentData && roomData) {
+      const roomMap = new Map(roomData.map(r => [r.id, r.name]))
+      setRecentSessions(recentData.map(s => ({
+        ...s,
+        room_name: roomMap.get(s.room_id) || 'Unknown',
+      })))
+    }
+  }
+
+  // C5: Compute next meeting date from room's next_meeting_day
+  function getNextMeetingDate(room: MeetingRoomInfo): Date | null {
+    if (room.next_meeting_day === undefined || room.next_meeting_day === null) return null
+    const today = new Date()
+    const todayDay = today.getDay()
+    let daysUntil = room.next_meeting_day - todayDay
+    if (daysUntil <= 0) daysUntil += 7
+    return addDays(today, daysUntil)
   }
 
   const daysLeft = planDates ? differenceInDays(parseISO(planDates.end), new Date()) : null
@@ -82,6 +186,80 @@ export default function DashboardPage() {
               <div className="font-mono text-[10px] tracking-[0.3em] text-cult-gold/70 uppercase mb-1">North Star · Q1 2026</div>
               <p className="text-cult-white text-sm leading-relaxed">{northStar}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── E1: Claude Recommendations (top 3) ── */}
+      <ClaudeRecommendations maxItems={3} compact />
+
+      {/* ── C5: L-10 Meeting Section ── */}
+      {rooms.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-cult-gold" />
+              <span className="font-mono text-xs text-cult-text tracking-wider uppercase">L-10 Meetings</span>
+            </div>
+            <Link to="/meetings" className="text-cult-gold text-xs font-mono hover:underline flex items-center gap-1">
+              All Rooms <ArrowRight size={10} />
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {rooms.map(room => {
+              const nextDate = getNextMeetingDate(room)
+              const daysUntilMeeting = nextDate ? differenceInDays(nextDate, new Date()) : null
+
+              return (
+                <div key={room.id} className="flex items-center gap-4 p-3 rounded-lg border border-cult-border bg-cult-surface">
+                  {/* Room info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-cult-white font-medium truncate">{room.name}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      {nextDate && (
+                        <span className="flex items-center gap-1 text-[10px] font-mono text-cult-text/60">
+                          <Calendar size={10} />
+                          Next: {format(nextDate, 'EEE, MMM d')}
+                          {daysUntilMeeting !== null && daysUntilMeeting <= 1 && (
+                            <span className="text-cult-gold ml-1">
+                              {daysUntilMeeting === 0 ? '(Today!)' : '(Tomorrow)'}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-cult-text/40 capitalize">{room.cadence || 'Weekly'}</span>
+                    </div>
+                  </div>
+
+                  {/* Streak badge */}
+                  {meetingStreak > 1 && (
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${
+                      meetingStreak >= 10
+                        ? 'bg-cult-gold/15 border-cult-gold/40'
+                        : meetingStreak >= 5
+                          ? 'bg-cult-gold/10 border-cult-gold/25'
+                          : 'bg-cult-surface border-cult-border'
+                    }`}>
+                      <Flame size={12} className={meetingStreak >= 5 ? 'text-cult-gold' : 'text-cult-text/50'} />
+                      <span className={`text-xs font-mono font-bold ${meetingStreak >= 5 ? 'text-cult-gold' : 'text-cult-white'}`}>
+                        {meetingStreak}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Quick-enter button */}
+                  <button
+                    onClick={() => navigate(`/meetings/${room.id}`)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-cult-gold/20 text-cult-gold border border-cult-gold/30
+                      rounded-md text-[10px] font-mono tracking-wider uppercase hover:bg-cult-gold/30 transition-colors"
+                  >
+                    <Play size={10} />
+                    Enter
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -178,6 +356,74 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── C6: Recent Meeting Sessions ── */}
+      {recentSessions.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-cult-gold" />
+              <span className="font-mono text-xs text-cult-text tracking-wider uppercase">Recent Meetings</span>
+            </div>
+            <Link to="/meetings" className="text-cult-gold text-xs font-mono hover:underline flex items-center gap-1">
+              View all <ArrowRight size={10} />
+            </Link>
+          </div>
+
+          <div className="space-y-2">
+            {recentSessions.map(session => {
+              const todoStats = session.todo_stats as { completed?: number; total?: number } | null
+              const issueStats = session.issue_stats as { resolved?: number; total?: number } | null
+
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-cult-border bg-cult-surface"
+                >
+                  {/* Date */}
+                  <div className="text-center flex-shrink-0 w-12">
+                    <div className="text-xs font-mono text-cult-text/40">
+                      {format(parseISO(session.meeting_date), 'MMM')}
+                    </div>
+                    <div className="text-lg font-display text-cult-white">
+                      {format(parseISO(session.meeting_date), 'd')}
+                    </div>
+                  </div>
+
+                  {/* Room + stats */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-cult-white truncate">{session.room_name}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {todoStats && (
+                        <span className="text-[10px] font-mono text-cult-text/50">
+                          {todoStats.completed ?? 0}/{todoStats.total ?? 0} to-dos
+                        </span>
+                      )}
+                      {issueStats && (
+                        <span className="text-[10px] font-mono text-cult-text/50">
+                          {issueStats.resolved ?? 0}/{issueStats.total ?? 0} issues
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Rating */}
+                  {session.rating && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Star size={12} className={session.rating >= 8 ? 'text-cult-gold fill-cult-gold' : 'text-cult-text/40'} />
+                      <span className={`text-sm font-mono font-bold ${
+                        session.rating >= 8 ? 'text-cult-gold' : session.rating >= 5 ? 'text-cult-white' : 'text-cult-text/60'
+                      }`}>
+                        {session.rating}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

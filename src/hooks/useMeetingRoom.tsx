@@ -7,6 +7,7 @@ import {
   SectionId, SECTIONS, MeetingContextType, MeetingSegue, MeetingHeadline,
   IssueVote, IssueNote
 } from '../types/meeting'
+import { logMeetingSession } from '../lib/contextDbLogger'
 
 const MeetingContext = createContext<MeetingContextType | undefined>(undefined)
 
@@ -41,6 +42,8 @@ export function MeetingProvider({ roomId, children }: Props) {
   // Phase 4: Conclude state
   const [concludeRating, setConcludeRating] = useState<number | null>(null)
   const [concludeCascading, setConcludeCascading] = useState('')
+  // A20: Meeting streak
+  const [meetingStreak, setMeetingStreak] = useState(0)
 
   // ─── Load room + members ───
   useEffect(() => {
@@ -56,6 +59,7 @@ export function MeetingProvider({ roomId, children }: Props) {
     loadIssues()
     loadIssueVotes()
     loadIssueNotes()
+    loadStreak()
   }, [roomId])
 
   async function loadRoom() {
@@ -66,6 +70,31 @@ export function MeetingProvider({ roomId, children }: Props) {
       .single()
     setRoom(data)
     setLoading(false)
+  }
+
+  // A20: Load meeting streak — consecutive weeks with a recorded session
+  async function loadStreak() {
+    const { data: sessions } = await supabase
+      .from('meeting_sessions')
+      .select('meeting_date')
+      .eq('room_id', roomId)
+      .order('meeting_date', { ascending: false })
+      .limit(52) // max 1 year of weekly meetings
+    if (!sessions || sessions.length === 0) { setMeetingStreak(0); return }
+
+    let streak = 1
+    for (let i = 0; i < sessions.length - 1; i++) {
+      const curr = new Date(sessions[i].meeting_date)
+      const prev = new Date(sessions[i + 1].meeting_date)
+      const daysBetween = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+      // Allow 5–10 day gap for weekly meetings (accounts for schedule drift)
+      if (daysBetween <= 10) {
+        streak++
+      } else {
+        break
+      }
+    }
+    setMeetingStreak(streak)
   }
 
   async function loadMembers() {
@@ -289,6 +318,7 @@ export function MeetingProvider({ roomId, children }: Props) {
 
   // ─── Timer controls ───
   const startTimer = useCallback(async (seconds: number) => {
+    const wasRunning = timer?.running
     const expiresAt = new Date(Date.now() + seconds * 1000).toISOString()
     const timerState: MeetingTimerState = {
       room_id: roomId, running: true, expires_at: expiresAt,
@@ -298,7 +328,13 @@ export function MeetingProvider({ roomId, children }: Props) {
     supabase.channel(`meeting:${roomId}`).send({
       type: 'broadcast', event: 'timer', payload: timerState,
     })
-  }, [roomId])
+    // F4: Notify room members via Slack when meeting starts (not on resume)
+    if (!wasRunning && user) {
+      supabase.functions.invoke('slack-meeting-start', {
+        body: { room_id: roomId, started_by: user.id },
+      }).catch(err => console.warn('[F4] Slack meeting start notify failed:', err))
+    }
+  }, [roomId, timer, user])
 
   const stopTimer = useCallback(async () => {
     const timerState: MeetingTimerState = {
@@ -389,14 +425,27 @@ export function MeetingProvider({ roomId, children }: Props) {
 
   const addTodo = useCallback(async (title: string, ownerId?: string) => {
     if (!user) return
+    const targetOwner = ownerId || user.id
     await supabase.from('todos').insert({
       room_id: roomId,
-      owner_id: ownerId || user.id,
+      owner_id: targetOwner,
       title,
       status: 'open',
       due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     })
-  }, [roomId, user])
+    // F2: Notify assigned user via Slack DM (non-blocking, skip self)
+    if (targetOwner !== user.id) {
+      supabase.functions.invoke('slack-todo-notify', {
+        body: {
+          todo_title: title,
+          todo_type: 'team',
+          assignee_ids: [targetOwner],
+          assigned_by: user.id,
+          room_name: room?.name,
+        },
+      }).catch(err => console.warn('[F2] Slack todo notify failed:', err))
+    }
+  }, [roomId, room, user])
 
   const updateTodoStatus = useCallback(async (id: string, status: string) => {
     await supabase.from('todos').update({
@@ -507,9 +556,10 @@ export function MeetingProvider({ roomId, children }: Props) {
     const issueTotal = issues.length
     const issueResolved = issues.filter(i => i.status === 'resolved').length
     const attendeeIds = presence.map(p => p.user_id)
+    const meetingDate = new Date().toISOString().split('T')[0]
     await supabase.from('meeting_sessions').insert({
       room_id: roomId,
-      meeting_date: new Date().toISOString().split('T')[0],
+      meeting_date: meetingDate,
       rating: concludeRating,
       cascading_messages: concludeCascading,
       todo_stats: { total: todoTotal, completed: todoCompleted },
@@ -518,9 +568,58 @@ export function MeetingProvider({ roomId, children }: Props) {
       attendees: attendeeIds,
       recorded_by: user.id,
     })
+    // E4: Log session summary to Context DB (non-blocking)
+    logMeetingSession({
+      roomId,
+      roomName: room?.name,
+      meetingDate,
+      rating: concludeRating,
+      cascadingMessages: concludeCascading,
+      todoStats: { total: todoTotal, completed: todoCompleted },
+      rockStats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
+      issueStats: { total: issueTotal, resolved: issueResolved },
+      attendeeCount: attendeeIds.length,
+      recordedBy: user.id,
+    })
+    // F1: Post recap to Slack (non-blocking)
+    if (room?.slack_channel_id) {
+      supabase.functions.invoke('slack-meeting-recap', {
+        body: {
+          room_id: roomId,
+          meeting_date: meetingDate,
+          rating: concludeRating,
+          cascading_messages: concludeCascading,
+          todo_stats: { total: todoTotal, completed: todoCompleted },
+          rock_stats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
+          issue_stats: { total: issueTotal, resolved: issueResolved },
+          attendees: attendeeIds,
+          recorded_by: user.id,
+        },
+      }).catch(err => console.warn('[F1] Slack recap failed:', err))
+    }
     setConcludeRating(null)
     setConcludeCascading('')
-  }, [roomId, user, todos, rocks, issues, presence, concludeRating, concludeCascading])
+    // A20: Reload streak after recording
+    loadStreak()
+  }, [roomId, room, user, todos, rocks, issues, presence, concludeRating, concludeCascading])
+
+  // A17: Reset meeting — clear transient session data
+  const resetMeeting = useCallback(async () => {
+    // Clear segues
+    await supabase.from('meeting_segues').delete().eq('room_id', roomId)
+    // Clear headlines
+    await supabase.from('meeting_headlines').delete().eq('room_id', roomId)
+    // Reset conclude state
+    setConcludeRating(null)
+    setConcludeCascading('')
+    // Reset section to segue
+    handleSetSection('segue')
+    // Reset timer
+    await resetTimer()
+    // Reload cleared data
+    loadSegues()
+    loadHeadlines()
+  }, [roomId, handleSetSection, resetTimer])
 
   return (
     <MeetingContext.Provider value={{
@@ -538,6 +637,7 @@ export function MeetingProvider({ roomId, children }: Props) {
       // Phase 4: Conclude
       concludeRating, concludeCascading,
       setConcludeRating, setConcludeCascading, recordSession,
+      resetMeeting, meetingStreak,
     }}>
       {children}
     </MeetingContext.Provider>

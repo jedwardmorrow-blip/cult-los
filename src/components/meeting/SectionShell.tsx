@@ -30,7 +30,7 @@ export default function SectionShell({ sectionId }: Props) {
 
   return (
     <MeetingErrorBoundary key={sectionId} sectionName={sectionLabel}>
-      <div className="flex-1 animate-fade-in">
+      <div key={sectionId} className="flex-1 animate-eye-flash">
         <Component />
       </div>
     </MeetingErrorBoundary>

@@ -1,4 +1,6 @@
 import { useMeeting } from '../../../hooks/useMeetingRoom'
+import { useToast } from '../../ui/Toast'
+import { useConfetti, ConfettiOverlay } from '../../ui/Confetti'
 import { Target, ChevronRight } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -9,6 +11,20 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 
 export default function RocksSection() {
   const { rocks, cycleRockStatus } = useMeeting()
+  const { showToast } = useToast()
+  const confetti = useConfetti()
+
+  function handleCycle(id: string, currentStatus: string) {
+    cycleRockStatus(id, currentStatus)
+    // Fire confetti when cycling TO complete
+    const statusOrder = ['on_track', 'off_track', 'complete']
+    const nextIdx = (statusOrder.indexOf(currentStatus) + 1) % statusOrder.length
+    const next = statusOrder[nextIdx]
+    if (next === 'complete') {
+      confetti.fire()
+      showToast('Rock marked complete!', 'success')
+    }
+  }
 
   if (rocks.length === 0) {
     return (
@@ -23,7 +39,9 @@ export default function RocksSection() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-3 animate-fade-in">
+    <div className="max-w-3xl mx-auto space-y-3">
+      <ConfettiOverlay active={confetti.active} />
+
       <div className="text-center mb-6">
         <p className="text-xs font-mono text-cult-text/60 tracking-wider uppercase">
           Review 90-day rocks: on track, off track, or done
@@ -38,10 +56,10 @@ export default function RocksSection() {
             key={rock.id}
             className="rounded-lg border border-cult-border bg-cult-surface hover:bg-cult-surface/80 transition-all duration-200"
           >
-            <div className="flex items-center gap-4 px-4 py-3">
+            <div className="flex items-center gap-2 sm:gap-4 px-3 sm:px-4 py-2.5 sm:py-3">
               {/* Status badge — clickable to cycle */}
               <button
-                onClick={() => cycleRockStatus(rock.id, rock.status)}
+                onClick={() => handleCycle(rock.id, rock.status)}
                 className={`
                   flex-shrink-0 px-3 py-1.5 rounded-md border text-[10px] font-mono tracking-wider uppercase
                   transition-all duration-150 hover:scale-105 cursor-pointer
@@ -73,7 +91,7 @@ export default function RocksSection() {
 
             {/* Description if present */}
             {rock.description && (
-              <div className="px-4 pb-3 border-t border-cult-border/30">
+              <div className="px-3 sm:px-4 pb-3 border-t border-cult-border/30">
                 <p className="text-xs text-cult-text/60 mt-2 leading-relaxed">{rock.description}</p>
               </div>
             )}

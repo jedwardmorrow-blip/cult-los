@@ -35,6 +35,18 @@ const CATEGORY_ICONS: Record<string, typeof Shield> = {
   feature: Zap,
 }
 
+// E6: Format how fresh a recommendation is
+function formatFreshness(dateStr: string): string {
+  const ms = Date.now() - new Date(dateStr).getTime()
+  const hours = Math.floor(ms / (1000 * 60 * 60))
+  if (hours < 1) return 'just now'
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days}d ago`
+  return `${Math.floor(days / 7)}w ago`
+}
+
 interface Props {
   maxItems?: number
   compact?: boolean
@@ -173,19 +185,51 @@ function RecommendationRow({
 
       {expanded && (
         <div className="px-5 pb-4 pl-11 space-y-3">
+          {/* E6: Recommendation detail */}
           <p className="text-xs text-cult-text leading-relaxed">
             {rec.recommendation}
           </p>
+
+          {/* E6: Structured reasoning display */}
           {rec.reasoning && (
-            <div className="flex items-start gap-2">
-              <span className="font-mono text-[9px] text-purple-400/60 tracking-wider uppercase mt-0.5 flex-shrink-0">
-                Why:
-              </span>
-              <p className="text-[11px] text-cult-text/70 leading-relaxed italic">
-                {rec.reasoning}
-              </p>
+            <div className="bg-cult-dark/50 rounded-sm border border-purple-900/20 p-3 space-y-2">
+              <div className="font-mono text-[9px] text-purple-400/70 tracking-[0.2em] uppercase">
+                Reasoning
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {rec.reasoning.split(' | ').map((part, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center px-2 py-0.5 text-[10px] font-mono
+                      bg-purple-900/15 text-purple-300/80 border border-purple-800/20 rounded-sm"
+                  >
+                    {part.trim()}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* E6: Source & freshness metadata */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {rec.source_session && (
+              <span className="font-mono text-[8px] text-cult-text/40 tracking-wider uppercase">
+                via {rec.source_session.replace(/-\d{4}-\d{2}-\d{2}$/, '')}
+              </span>
+            )}
+            {rec.created_at && (
+              <span className="font-mono text-[8px] text-cult-text/40">
+                {formatFreshness(rec.created_at)}
+              </span>
+            )}
+            {rec.expires_at && (
+              <span className="font-mono text-[8px] text-cult-text/30">
+                expires {new Date(rec.expires_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
+          {/* Action buttons */}
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={(e) => { e.stopPropagation(); onActedOn() }}

@@ -26,12 +26,44 @@ export default function SegueSection() {
   // Get online user IDs for presence indicator
   const onlineIds = new Set(presence.map(p => p.user_id))
 
+  // A11: Segue completion indicator
+  const filledCount = members.filter(m => {
+    const s = segues.find(seg => seg.profile_id === m.profile_id)
+    return s?.personal || s?.professional
+  }).length
+  const totalMembers = members.length
+
   return (
     <div className="max-w-3xl mx-auto space-y-4 animate-fade-in">
       <div className="text-center mb-6">
         <p className="text-xs font-mono text-cult-text/60 tracking-wider uppercase">
           Share one personal and one professional piece of good news
         </p>
+        {/* A11: Completion indicator */}
+        {totalMembers > 0 && (
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="flex gap-1">
+              {members.map((m, i) => {
+                const s = segues.find(seg => seg.profile_id === m.profile_id)
+                const filled = !!(s?.personal || s?.professional)
+                return (
+                  <div
+                    key={m.id}
+                    className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                      filled ? 'bg-cult-gold' : 'bg-cult-border'
+                    }`}
+                    title={`${m.profiles?.full_name || 'Unknown'}: ${filled ? 'shared' : 'waiting'}`}
+                  />
+                )
+              })}
+            </div>
+            <span className={`text-[10px] font-mono ${
+              filledCount === totalMembers ? 'text-green-400' : 'text-cult-text/30'
+            }`}>
+              {filledCount}/{totalMembers}
+            </span>
+          </div>
+        )}
       </div>
 
       {members.map((member) => {

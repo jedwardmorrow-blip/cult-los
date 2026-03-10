@@ -80,8 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       provider: 'google',
       options: {
         redirectTo: window.location.origin + '/auth/callback',
+        scopes: 'https://www.googleapis.com/auth/calendar.events',
         queryParams: {
-          hd: 'cultcannabis.co'
+          hd: 'cultcannabis.co',
+          access_type: 'offline',
+          prompt: 'consent',
         }
       }
     })

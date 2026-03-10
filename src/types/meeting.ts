@@ -19,6 +19,7 @@ export interface MeetingRoom {
   description?: string
   created_by?: string
   timer_duration_minutes: number
+  slack_channel_id?: string
   created_at: string
 }
 
@@ -165,4 +166,7 @@ export interface MeetingContextType {
   setConcludeRating: (rating: number | null) => void
   setConcludeCascading: (text: string) => void
   recordSession: () => Promise<void>
+  resetMeeting: () => Promise<void>
+  // A20: Meeting streak
+  meetingStreak: number
 }

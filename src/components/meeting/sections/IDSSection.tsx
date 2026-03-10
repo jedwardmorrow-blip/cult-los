@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useMeeting } from '../../../hooks/useMeetingRoom'
 import { useAuth } from '../../../hooks/useAuth'
+import { useToast } from '../../ui/Toast'
 import { Issue } from '../../../types'
 import {
   MessageSquare, Plus, ThumbsUp, ChevronDown, ChevronUp,
-  Check, Send, ListTodo, StickyNote, X,
+  Check, Send, ListTodo, StickyNote, X, Timer,
 } from 'lucide-react'
 
 export default function IDSSection() {
@@ -14,6 +15,7 @@ export default function IDSSection() {
     addIssue, voteIssue, setDiscussing, updateIssueDraft,
     solveIssue, addIssueNote, issueToTodo, members,
   } = useMeeting()
+  const { showToast } = useToast()
 
   const [newTitle, setNewTitle] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
@@ -22,6 +24,52 @@ export default function IDSSection() {
   const [solveDraft, setSolveDraft] = useState<Record<string, string>>({})
   const [solvingIssueId, setSolvingIssueId] = useState<string | null>(null)
   const [showResolved, setShowResolved] = useState(false)
+
+  // A12: Track discussion time per issue
+  const [discussionTimes, setDiscussionTimes] = useState<Record<string, number>>({})
+  const discussStartRef = useRef<{ issueId: string; startTime: number } | null>(null)
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    // Accumulate time for previously-discussed issue
+    if (discussStartRef.current) {
+      const elapsed = (Date.now() - discussStartRef.current.startTime) / 1000
+      const prevId = discussStartRef.current.issueId
+      setDiscussionTimes(prev => ({
+        ...prev,
+        [prevId]: (prev[prevId] || 0) + elapsed,
+      }))
+      discussStartRef.current = null
+    }
+    if (tickRef.current) {
+      clearInterval(tickRef.current)
+      tickRef.current = null
+    }
+
+    if (discussingIssueId) {
+      discussStartRef.current = { issueId: discussingIssueId, startTime: Date.now() }
+      tickRef.current = setInterval(() => {
+        if (discussStartRef.current) {
+          const elapsed = (Date.now() - discussStartRef.current.startTime) / 1000
+          setDiscussionTimes(prev => ({
+            ...prev,
+            [discussStartRef.current!.issueId]: (prev[discussStartRef.current!.issueId] || 0) + elapsed,
+          }))
+          discussStartRef.current!.startTime = Date.now()
+        }
+      }, 1000)
+    }
+
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current)
+    }
+  }, [discussingIssueId])
+
+  function formatDiscussionTime(seconds: number): string {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`
+  }
 
   // Split open vs resolved
   const openIssues = useMemo(() =>
@@ -88,6 +136,7 @@ export default function IDSSection() {
     if (!solution) return
     await solveIssue(issueId, solution)
     setSolvingIssueId(null)
+    showToast('Issue solved!', 'success')
   }
 
   const priorityColor: Record<string, string> = {
@@ -170,7 +219,7 @@ export default function IDSSection() {
                 }`}
               >
                 {/* Issue header row */}
-                <div className="flex items-center gap-3 px-4 py-3">
+                <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
                   {/* Rank */}
                   <span className="text-[10px] font-mono text-cult-text/25 w-4 text-right flex-shrink-0">
                     {idx + 1}
@@ -218,7 +267,16 @@ export default function IDSSection() {
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {/* A12: Discussion time badge */}
+                    {(discussionTimes[issue.id] || 0) > 0 && (
+                      <span className={`text-[9px] font-mono items-center gap-0.5 hidden sm:flex ${
+                        isDiscussing ? 'text-cult-gold' : 'text-cult-text/25'
+                      }`}>
+                        <Timer size={9} />
+                        {formatDiscussionTime(discussionTimes[issue.id])}
+                      </span>
+                    )}
                     {!isDiscussing ? (
                       <button
                         onClick={() => setDiscussing(issue.id)}
@@ -245,15 +303,15 @@ export default function IDSSection() {
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 border-t border-cult-border/50">
+                  <div className="px-3 sm:px-4 pb-4 pt-1 border-t border-cult-border/50">
                     {/* Description */}
                     {issue.description && (
-                      <p className="text-xs text-cult-text/60 mb-3 pl-8">{issue.description}</p>
+                      <p className="text-xs text-cult-text/60 mb-3 pl-4 sm:pl-8">{issue.description}</p>
                     )}
 
                     {/* Discussion notes */}
                     {notes.length > 0 && (
-                      <div className="pl-8 mb-3 space-y-1.5">
+                      <div className="pl-4 sm:pl-8 mb-3 space-y-1.5">
                         <div className="text-[9px] font-mono text-cult-text/30 tracking-wider uppercase mb-1">
                           Notes
                         </div>
@@ -269,7 +327,7 @@ export default function IDSSection() {
                     )}
 
                     {/* Add note input */}
-                    <div className="flex gap-1.5 pl-8 mb-3">
+                    <div className="flex gap-1.5 pl-4 sm:pl-8 mb-3">
                       <input
                         type="text"
                         value={noteText[issue.id] || ''}
@@ -289,7 +347,7 @@ export default function IDSSection() {
 
                     {/* Solve flow */}
                     {isSolving ? (
-                      <div className="pl-8 space-y-2">
+                      <div className="pl-4 sm:pl-8 space-y-2">
                         <div className="text-[9px] font-mono text-cult-gold/60 tracking-wider uppercase">
                           Solution
                         </div>
@@ -319,7 +377,7 @@ export default function IDSSection() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 pl-8">
+                      <div className="flex items-center gap-2 pl-4 sm:pl-8">
                         <button
                           onClick={() => handleStartSolve(issue)}
                           className="text-[10px] font-mono px-2.5 py-1.5 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors tracking-wider uppercase flex items-center gap-1"

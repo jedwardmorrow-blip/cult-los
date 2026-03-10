@@ -28,7 +28,7 @@ export default function FloatingTodoPanel() {
       <button
         onClick={() => setOpen(!open)}
         className={`
-          fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full
+          fixed bottom-6 right-3 sm:right-6 z-50 w-12 h-12 rounded-full
           flex items-center justify-center shadow-lg
           transition-all duration-200 hover:scale-110
           ${open
@@ -54,7 +54,7 @@ export default function FloatingTodoPanel() {
 
       {/* Slide-out panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 max-h-[60vh] bg-cult-dark border border-cult-border rounded-lg shadow-2xl flex flex-col animate-fade-in">
+        <div className="fixed bottom-20 right-3 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-80 max-h-[60vh] bg-cult-dark border border-cult-border rounded-lg shadow-2xl flex flex-col animate-fade-in">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-cult-border">
             <div className="flex items-center gap-2">

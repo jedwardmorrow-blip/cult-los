@@ -59,6 +59,24 @@ export default function AuthCallback() {
 
         const user = session.user
 
+        // G1: Store Google Calendar tokens on profile for server-side API calls
+        if (session.provider_token) {
+          const tokenUpdate: Record<string, string | null> = {
+            google_access_token: session.provider_token,
+            google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+          }
+          if (session.provider_refresh_token) {
+            tokenUpdate.google_refresh_token = session.provider_refresh_token
+          }
+          await supabase
+            .from('profiles')
+            .update(tokenUpdate)
+            .eq('id', user.id)
+            .then(({ error }) => {
+              if (error) console.warn('[G1] Token store error:', error)
+            })
+        }
+
         // Check if a profile already exists
         const { data: existingProfile } = await supabase
           .from('profiles')

@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { Issue, Todo, Rock } from '../types'
 import { AlertCircle, CheckCircle2, Circle, Plus, TrendingUp, Target, BarChart3 } from 'lucide-react'
+import AskClaudeButton from '../components/shared/AskClaudeButton'
 
 const PRIORITY_CFG = {
   critical: { label: 'Critical', cls: 'text-red-400 bg-red-900/20 border-red-800/30' },
@@ -59,9 +60,12 @@ export function IssuesPage() {
 
   return (
     <div className="max-w-3xl mx-auto animate-slide-up space-y-8">
-      <div>
-        <div className="font-mono text-[10px] tracking-[0.3em] text-cult-gold/70 uppercase mb-1">IDS Framework</div>
-        <h1 className="section-title">Issues</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="font-mono text-[10px] tracking-[0.3em] text-cult-gold/70 uppercase mb-1">IDS Framework</div>
+          <h1 className="section-title">Issues</h1>
+        </div>
+        <AskClaudeButton context="issues" />
       </div>
       <div className="card p-4">
         <div className="flex gap-3">
@@ -151,9 +155,12 @@ export function TodosPage() {
 
   return (
     <div className="max-w-3xl mx-auto animate-slide-up space-y-8">
-      <div>
-        <div className="font-mono text-[10px] tracking-[0.3em] text-cult-gold/70 uppercase mb-1">Weekly Commitments</div>
-        <h1 className="section-title">To-Dos</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="font-mono text-[10px] tracking-[0.3em] text-cult-gold/70 uppercase mb-1">Weekly Commitments</div>
+          <h1 className="section-title">To-Dos</h1>
+        </div>
+        <AskClaudeButton context="todos" />
       </div>
       <div className="card p-4">
         <div className="flex gap-3">

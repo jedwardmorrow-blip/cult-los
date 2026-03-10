@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
-import type { PersonalTodo, PersonalTodoCompletion } from '../types'
+import type { PersonalTodo, PersonalTodoCompletion, PersonalTodoAssignee } from '../types'
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
@@ -15,7 +15,7 @@ export function usePersonalTodos(targetOwnerId?: string) {
   const [completions, setCompletions] = useState<PersonalTodoCompletion[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Fetch todos + today's completions
+  // Fetch todos + today's completions + assignees (D2)
   const fetchTodos = useCallback(async () => {
     if (!ownerId) return
     setLoading(true)
@@ -38,9 +38,26 @@ export function usePersonalTodos(targetOwnerId?: string) {
       const todayCompletionIds = new Set(
         (completionsRes.data || []).map(c => c.todo_id)
       )
+      // D2: Fetch assignees for all todos
+      const todoIds = todosRes.data.map(t => t.id)
+      let assigneeMap: Record<string, Array<{ id: string; full_name: string; avatar_url?: string }>> = {}
+      if (todoIds.length > 0) {
+        const { data: assigneeData } = await supabase
+          .from('personal_todo_assignees')
+          .select('todo_id, profiles(id, full_name, avatar_url)')
+          .in('todo_id', todoIds)
+        if (assigneeData) {
+          for (const a of assigneeData) {
+            if (!assigneeMap[a.todo_id]) assigneeMap[a.todo_id] = []
+            if (a.profiles) assigneeMap[a.todo_id].push(a.profiles as any)
+          }
+        }
+      }
+
       const enriched = todosRes.data.map(t => ({
         ...t,
         completed_today: todayCompletionIds.has(t.id),
+        assignees: assigneeMap[t.id] || [],
       })) as PersonalTodo[]
       setTodos(enriched)
     }
@@ -195,7 +212,7 @@ export function usePersonalTodos(targetOwnerId?: string) {
   }
 }
 
-// Hook for admin: assign a todo to any team member
+// Hook for admin: assign a todo to any team member (D2: with co-assignees)
 export function useAssignTodo() {
   const { user } = useAuth()
 
@@ -208,6 +225,7 @@ export function useAssignTodo() {
     recurrence_pattern?: string
     priority?: string
     category?: string
+    additional_assignees?: string[] // D2: extra profile IDs
   }) => {
     if (!user?.id) return null
 
@@ -238,11 +256,102 @@ export function useAssignTodo() {
       .select()
       .single()
 
-    if (error) console.error('Assign todo error:', error)
+    if (error) {
+      console.error('Assign todo error:', error)
+      return null
+    }
+
+    // D2: Insert co-assignees into junction table
+    if (data && params.additional_assignees && params.additional_assignees.length > 0) {
+      const rows = params.additional_assignees.map(pid => ({
+        todo_id: data.id,
+        profile_id: pid,
+      }))
+      const { error: assignErr } = await supabase
+        .from('personal_todo_assignees')
+        .insert(rows)
+      if (assignErr) console.error('Co-assignee insert error:', assignErr)
+    }
+
+    // F2: Notify assignees via Slack DM (non-blocking)
+    if (data) {
+      const allAssigneeIds = [params.owner_id, ...(params.additional_assignees || [])]
+        .filter(id => id !== user.id) // Don't notify self
+      if (allAssigneeIds.length > 0) {
+        supabase.functions.invoke('slack-todo-notify', {
+          body: {
+            todo_title: params.title,
+            todo_type: 'personal',
+            assignee_ids: allAssigneeIds,
+            assigned_by: user.id,
+            due_date: params.due_date,
+          },
+        }).catch(err => console.warn('[F2] Slack todo notify failed:', err))
+      }
+    }
+
     return data
   }
 
   return { assignTodo }
+}
+
+// D5: Fetch todos where current user is a co-assignee (cross-department)
+export function useAssignedToMeTodos() {
+  const { user } = useAuth()
+  const [assignedTodos, setAssignedTodos] = useState<PersonalTodo[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAssigned = useCallback(async () => {
+    if (!user?.id) return
+    setLoading(true)
+
+    // Get todo IDs where user is an assignee
+    const { data: assigneeRows } = await supabase
+      .from('personal_todo_assignees')
+      .select('todo_id')
+      .eq('profile_id', user.id)
+
+    if (!assigneeRows || assigneeRows.length === 0) {
+      setAssignedTodos([])
+      setLoading(false)
+      return
+    }
+
+    const todoIds = assigneeRows.map(r => r.todo_id)
+
+    const [todosRes, completionsRes] = await Promise.all([
+      supabase
+        .from('personal_todos')
+        .select('*, profiles(id, full_name, avatar_url)')
+        .in('id', todoIds)
+        .neq('status', 'dropped')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('personal_todo_completions')
+        .select('*')
+        .eq('completed_date', todayStr()),
+    ])
+
+    if (todosRes.data) {
+      const todayCompletionIds = new Set(
+        (completionsRes.data || []).map(c => c.todo_id)
+      )
+      setAssignedTodos(
+        todosRes.data.map(t => ({
+          ...t,
+          completed_today: todayCompletionIds.has(t.id),
+        })) as PersonalTodo[]
+      )
+    }
+    setLoading(false)
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchAssigned()
+  }, [fetchAssigned])
+
+  return { assignedTodos, loading, refresh: fetchAssigned }
 }
 
 // Hook for admin: fetch all users' todos
@@ -270,10 +379,27 @@ export function useAllPersonalTodos() {
       const todayCompletionIds = new Set(
         (completionsRes.data || []).map(c => c.todo_id)
       )
+      // D2: Fetch assignees for all todos
+      const todoIds = todosRes.data.map(t => t.id)
+      let assigneeMap: Record<string, Array<{ id: string; full_name: string; avatar_url?: string }>> = {}
+      if (todoIds.length > 0) {
+        const { data: assigneeData } = await supabase
+          .from('personal_todo_assignees')
+          .select('todo_id, profiles(id, full_name, avatar_url)')
+          .in('todo_id', todoIds)
+        if (assigneeData) {
+          for (const a of assigneeData) {
+            if (!assigneeMap[a.todo_id]) assigneeMap[a.todo_id] = []
+            if (a.profiles) assigneeMap[a.todo_id].push(a.profiles as any)
+          }
+        }
+      }
+
       setAllTodos(
         todosRes.data.map(t => ({
           ...t,
           completed_today: todayCompletionIds.has(t.id),
+          assignees: assigneeMap[t.id] || [],
         })) as PersonalTodo[]
       )
     }

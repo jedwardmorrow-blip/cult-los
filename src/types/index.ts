@@ -8,6 +8,9 @@ export interface Profile {
   slack_id?: string
   avatar_url?: string
   is_active: boolean
+  google_access_token?: string
+  google_refresh_token?: string
+  google_token_expires_at?: string
   created_at: string
   updated_at: string
 }
@@ -152,6 +155,8 @@ export interface Todo {
   priority?: string
   // Joined
   profiles?: { id: string; full_name: string; avatar_url?: string }
+  // D2: Multi-assignee
+  assignees?: Array<{ id: string; full_name: string; avatar_url?: string }>
 }
 
 export interface Checkin {
@@ -180,10 +185,13 @@ export interface PersonalTodo {
   completed_at?: string
   sort_order: number
   priority?: string
+  category?: string
   created_at: string
   updated_at: string
   // Joined
   profiles?: { id: string; full_name: string; avatar_url?: string }
+  // D2: Multi-assignee
+  assignees?: Array<{ id: string; full_name: string; avatar_url?: string }>
   // Virtual: for recurring items, today's completion
   completed_today?: boolean
 }
@@ -193,6 +201,46 @@ export interface PersonalTodoCompletion {
   todo_id: string
   completed_date: string
   completed_at: string
+}
+
+// ── Phase D: Cross-Functional Assignment ──
+
+export interface TodoAssignee {
+  id: string
+  todo_id: string
+  profile_id: string
+  assigned_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
+}
+
+export interface PersonalTodoAssignee {
+  id: string
+  todo_id: string
+  profile_id: string
+  assigned_at: string
+  // Joined
+  profiles?: { id: string; full_name: string; avatar_url?: string }
+}
+
+// ── Phase G: Google Calendar Sync ──
+
+export interface MeetingSchedule {
+  id: string
+  room_id: string
+  title: string
+  scheduled_at: string
+  duration_minutes: number
+  recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly'
+  google_event_id?: string
+  ics_uid?: string
+  created_by?: string
+  cancelled_at?: string
+  created_at: string
+  updated_at: string
+  // Joined
+  meeting_rooms?: { id: string; name: string }
+  profiles?: { id: string; full_name: string }
 }
 
 export interface ClaudeRecommendation {

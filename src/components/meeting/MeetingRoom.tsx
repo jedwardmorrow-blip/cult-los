@@ -6,9 +6,10 @@ import MeetingTimer from './MeetingTimer'
 import MeetingSidebar from './MeetingSidebar'
 import SectionShell from './SectionShell'
 import FloatingTodoPanel from './FloatingTodoPanel'
+import SessionHistoryPanel from './SessionHistoryPanel'
 import {
   Smile, BarChart3, Target, Newspaper, ListTodo,
-  MessageSquare, CheckCircle2, ArrowLeft, Menu,
+  MessageSquare, CheckCircle2, ArrowLeft, Menu, History, RotateCcw,
 } from 'lucide-react'
 
 const SECTION_ICONS: Record<string, any> = {
@@ -23,8 +24,10 @@ const SECTION_ICONS: Record<string, any> = {
 
 export default function MeetingRoom() {
   const navigate = useNavigate()
-  const { room, currentSection, setCurrentSection, loading } = useMeeting()
+  const { room, currentSection, setCurrentSection, loading, resetMeeting } = useMeeting()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
 
   // Auto-open sidebar on desktop
   useEffect(() => {
@@ -137,7 +140,23 @@ export default function MeetingRoom() {
                 </p>
               </div>
             </div>
-            <MeetingTimer />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className="text-cult-text hover:text-cult-gold transition-colors p-1.5 rounded hover:bg-cult-gold/5"
+                title="Session History"
+              >
+                <History size={16} />
+              </button>
+              <button
+                onClick={() => setResetConfirmOpen(true)}
+                className="text-cult-text hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/5"
+                title="Reset Meeting"
+              >
+                <RotateCcw size={16} />
+              </button>
+              <MeetingTimer />
+            </div>
           </div>
         </header>
 
@@ -162,7 +181,7 @@ export default function MeetingRoom() {
                         : 'text-cult-text hover:text-cult-white hover:bg-cult-muted'
                     }
                   `}
-                  title={`${section.label} (${section.minutes}m) — Press ${idx + 1}`}
+                  title={`${section.label} (${section.minutes}m)\n${section.tip}\nPress ${idx + 1}`}
                 >
                   <Icon size={14} />
                   <span className="hidden sm:inline">{section.label}</span>
@@ -216,6 +235,46 @@ export default function MeetingRoom() {
           </div>
         </footer>
       </div>
+      {/* Session history panel */}
+      <SessionHistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} />
+
+      {/* A17: Reset meeting confirmation modal */}
+      {resetConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setResetConfirmOpen(false)} />
+          <div className="relative bg-cult-dark border border-cult-border rounded-xl p-6 max-w-sm w-full mx-4 animate-fade-in">
+            <h3 className="font-display text-lg tracking-widest text-cult-white mb-2">Reset Meeting?</h3>
+            <p className="text-sm text-cult-text mb-1">This will clear:</p>
+            <ul className="text-xs text-cult-text/60 space-y-1 mb-5 ml-3">
+              <li>• All segue entries</li>
+              <li>• All headlines</li>
+              <li>• Cascading messages & rating</li>
+              <li>• Timer (reset to default)</li>
+              <li>• Return to Segue section</li>
+            </ul>
+            <p className="text-[10px] font-mono text-cult-text/40 mb-4">
+              Rocks, to-dos, issues, and scorecard data will not be affected.
+            </p>
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={() => setResetConfirmOpen(false)}
+                className="btn-ghost text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await resetMeeting()
+                  setResetConfirmOpen(false)
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-colors"
+              >
+                Reset Meeting
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
