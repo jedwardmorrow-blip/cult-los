@@ -149,6 +149,7 @@ export interface Todo {
   completed_at?: string
   created_at: string
   updated_at: string
+  priority?: string
   // Joined
   profiles?: { id: string; full_name: string; avatar_url?: string }
 }
