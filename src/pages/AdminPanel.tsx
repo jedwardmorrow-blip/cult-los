@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Users, FileText, AlertTriangle } from 'lucide-react'
+import { Users, FileText, AlertTriangle, LayoutGrid } from 'lucide-react'
 import AdminGate from '../components/AdminGate'
 import UserList from '../components/admin/UserList'
 import UserForm from '../components/admin/UserForm'
 import AuditLog from '../components/admin/AuditLog'
+import TeamOverview from '../components/admin/TeamOverview'
 import {
   useAdminUsers,
   useAuditLog,
@@ -12,13 +13,13 @@ import {
   UpdateUserPayload,
 } from '../hooks/useAdminUsers'
 
-type Tab = 'users' | 'audit'
+type Tab = 'team' | 'users' | 'audit'
 
 function AdminContent() {
   const { users, loading, error, createUser, updateUser } = useAdminUsers()
   const { entries, loading: auditLoading } = useAuditLog()
 
-  const [activeTab, setActiveTab] = useState<Tab>('users')
+  const [activeTab, setActiveTab] = useState<Tab>('team')
   const [formOpen, setFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminProfile | null>(null)
 
@@ -45,6 +46,7 @@ function AdminContent() {
   }
 
   const tabs: { id: Tab; label: string; icon: typeof Users; count?: number }[] = [
+    { id: 'team', label: 'Team Overview', icon: LayoutGrid },
     { id: 'users', label: 'Users', icon: Users, count: users.length },
     { id: 'audit', label: 'Audit Log', icon: FileText, count: entries.length },
   ]
@@ -101,6 +103,7 @@ function AdminContent() {
       </div>
 
       {/* Tab content */}
+      {activeTab === 'team' && <TeamOverview />}
       {activeTab === 'users' && (
         <UserList
           users={users}
