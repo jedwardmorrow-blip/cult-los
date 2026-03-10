@@ -9,25 +9,54 @@ export default function AuthCallback() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        // Exchange the code for a session
-        const { data, error: authError } = await supabase.auth.getSession()
+        // Extract the code from URL parameters (PKCE flow)
+        const url = new URL(window.location.href)
+        const code = url.searchParams.get('code')
+        const errorParam = url.searchParams.get('error')
+        const errorDescription = url.searchParams.get('error_description')
 
-        if (authError) {
-          setError(authError.message)
+        // Check for OAuth errors in the URL
+        if (errorParam) {
+          setError(errorDescription || errorParam || 'Authentication failed.')
           return
         }
 
-        if (!data.session) {
-          // Wait a moment for the session to be established
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          const { data: retryData } = await supabase.auth.getSession()
-          if (!retryData.session) {
-            setError('Authentication failed. Please try again.')
+        let session = null
+
+        if (code) {
+          // PKCE flow: exchange the code for a session
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (exchangeError) {
+            console.error('Code exchange error:', exchangeError)
+            setError(exchangeError.message)
             return
+          }
+
+          session = data.session
+        } else {
+          // Fallback: check for existing session
+          const { data, error: sessionError } = await supabase.auth.getSession()
+
+          if (sessionError) {
+            setError(sessionError.message)
+            return
+          }
+
+          session = data.session
+
+          if (!session) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            const { data: retryData } = await supabase.auth.getSession()
+            session = retryData.session
           }
         }
 
-        const session = data.session!
+        if (!session) {
+          setError('Authentication failed. Please try again.')
+          return
+        }
+
         const user = session.user
 
         // Check if a profile already exists
@@ -37,29 +66,37 @@ export default function AuthCallback() {
           .eq('id', user.id)
           .single()
 
-        // If no profile, create one (first-time Google login)
         if (!existingProfile) {
-          const fullName =
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split('@')[0] ||
-            'New User'
-
-          const { error: profileError } = await supabase
+          const { data: emailProfile } = await supabase
             .from('profiles')
-            .insert({
-              id: user.id,
-              email: user.email!,
-              full_name: fullName,
-              role: 'Team_Member',
-              permission_level: 'member',
-              is_hidden: false,
-              is_active: true,
-            })
+            .select('id')
+            .eq('email', user.email)
+            .single()
 
-          if (profileError) {
-            console.error('Profile creation error:', profileError)
-            // Profile might already exist due to race condition â that's ok
+          if (emailProfile) {
+            console.log('Found existing profile by email, linking to new auth user')
+          } else {
+            const fullName =
+              user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
+              user.email?.split('@')[0] ||
+              'New User'
+
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                email: user.email,
+                full_name: fullName,
+                role: 'Team_Member',
+                permission_level: 'member',
+                is_hidden: false,
+                is_active: true,
+              })
+
+            if (profileError) {
+              console.error('Profile creation error:', profileError)
+            }
           }
         }
 
