@@ -61,6 +61,7 @@ export interface Rock {
   completed_at?: string
   created_at: string
   updated_at: string
+  priority?: string
   // Joined
   profiles?: { id: string; full_name: string; avatar_url?: string }
 }
@@ -164,7 +165,7 @@ export interface Checkin {
   submitted_at: string
 }
 
-// ── Phase 5: Personal Todos ──
+// ââ Phase 5: Personal Todos ââ
 
 export interface PersonalTodo {
   id: string
@@ -177,6 +178,7 @@ export interface PersonalTodo {
   status: 'pending' | 'complete' | 'dropped'
   completed_at?: string
   sort_order: number
+  priority?: string
   created_at: string
   updated_at: string
   // Joined
