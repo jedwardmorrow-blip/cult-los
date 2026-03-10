@@ -91,8 +91,8 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Section timer with default minutes per section
 - [x] Configurable section durations (`room_section_config` table)
 - [x] Presence tracking (who's online in the room)
-- [ ] **Eye flash transition between sections** — Original has a gold eye-flash overlay animation when switching sections. Current: instant switch, no transition.
-- [ ] **EOS tips per section** — Original shows a tip string in each section header (e.g., "Share one personal and one professional piece of good news."). Current: `SECTIONS` constant has `tip` field but it's not rendered in section headers.
+- [x] **Eye flash transition between sections** — ✅ Phase A2
+- [x] **EOS tips per section** — ✅ Phase A3
 
 ### 3.2 Timer System
 
@@ -102,9 +102,9 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Realtime sync across all participants (Supabase broadcast)
 - [x] Timer expires visual (red + pulse animation)
 - [x] Warning state (amber when < 60s)
-- [ ] **Timer gradient color system** — Original uses smooth color transitions: green (>50%) → gold (25-50%) → amber (10-25%) → red (<10%) with corresponding progress bar. Current: only 3 states (gold/running, amber/<60s, red/expired). No progress bar.
-- [ ] **Timer progress bar** — Original has a colored bar showing time remaining as a percentage. Current: none.
-- [ ] **Timer settings modal with schedule** — Original has a modal to set default meeting time AND schedule meetings. Current: has preset buttons and custom input but no scheduling.
+- [x] **Timer gradient color system** — ✅ Phase A4
+- [x] **Timer progress bar** — ✅ Phase A5
+- [x] **Timer settings modal with schedule** — ✅ Phase G2
 
 ### 3.3 Segue Section
 
@@ -112,7 +112,7 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Avatar and online status indicator
 - [x] Edit/save functionality with upsert
 - [x] All members displayed in grid layout
-- [ ] **Segue completion indicator** — Original shows which members have filled in their segue. Current: shows cards but no explicit "filled" vs "empty" visual distinction.
+- [x] **Segue completion indicator** — ✅ Phase A11
 
 ### 3.4 Scorecard Section
 
@@ -120,8 +120,8 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] 4-week Monday-based history columns
 - [x] Inline value editing
 - [x] Green/red goal comparison coloring
-- [ ] **Scorecard trend arrows** — Original shows ↑/↓/→ trend indicators based on week-over-week change. Current: only shows values with goal comparison coloring.
-- [ ] **Scorecard notes per entry** — The `scorecard_entries` table has a `notes` field, but the UI doesn't expose it.
+- [x] **Scorecard trend arrows** — ✅ Phase A7
+- [x] **Scorecard notes per entry** — ✅ Phase A8
 
 ### 3.5 Rocks Section
 
@@ -130,7 +130,7 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Due date display
 - [x] Description field
 - [x] Summary bar (on track / off track / done counts)
-- [ ] **Confetti on rock completion** — Original fires confetti animation when a rock is marked complete. Current: status just changes silently.
+- [x] **Confetti on rock completion** — ✅ Phase A6
 - [ ] **Rock progress percentage** — Original shows a percentage bar for each rock. Current: only status badges.
 
 ### 3.6 Headlines Section
@@ -150,8 +150,8 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Overdue detection and visual warning
 - [x] Quick-add new todo
 - [x] Floating todo panel (FAB button, open count badge, slide-out)
-- [ ] **Todo owner filter/view toggle** — Original lets you filter todos by owner (My Todos vs All). Current: shows all todos in a flat list.
-- [ ] **Todo completion percentage** — Original shows X/Y completed. Current: no aggregate stat shown.
+- [x] **Todo owner filter/view toggle** — ✅ Phase A9
+- [x] **Todo completion percentage** — ✅ Phase A10
 
 ### 3.8 IDS Section (Identify, Discuss, Solve)
 
@@ -165,7 +165,7 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Priority badges (low/medium/high/critical)
 - [x] Resolved/open split
 - [ ] **IDS drag-to-reorder** — Original allows manual reordering of issues by drag. Current: sorted by votes only.
-- [ ] **IDS time-spent tracking** — Original tracks how long each issue is discussed. Current: no per-issue timing.
+- [x] **IDS time-spent tracking** — ✅ Phase A12
 
 ### 3.9 Conclude Section
 
@@ -175,16 +175,16 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] 1-10 meeting rating (star buttons)
 - [x] Copy recap to clipboard
 - [x] Record session (saves to `meeting_sessions`)
-- [ ] **Confetti on session record** — Original fires confetti animation when meeting is recorded. Current: silent success.
-- [ ] **Slack recap posting** — Original posts recap to Slack channel. Current: copy to clipboard only.
-- [ ] **Meeting streak counter** — Original tracks consecutive meetings held and shows a streak badge. Current: none.
-- [ ] **Attendee recording** — The `meeting_sessions.attendees` field exists but conclude section doesn't populate it from presence data.
+- [x] **Confetti on session record** — ✅ Phase A6
+- [x] **Slack recap posting** — ✅ Phase F1
+- [x] **Meeting streak counter** — ✅ Phase A20
+- [x] **Attendee recording** — ✅ Phase A13
 
 ### 3.10 Session History & Export
 
-- [ ] **Session history page** — Original has `showHistory()` that displays past meetings with stats, ratings, and dates. Current: `meeting_sessions` table exists but no UI to view past sessions.
-- [ ] **Session filtering/search** — Original lets you filter sessions by date. Current: no session history UI at all.
-- [ ] **Session transcript/recap export** — Original has `exportMeetingRecap()` that generates a formatted text export. Current: conclude section has copy-to-clipboard for current meeting only.
+- [x] **Session history page** — ✅ Phase A14
+- [x] **Session filtering/search** — ✅ Phase A15
+- [x] **Session transcript/recap export** — ✅ Phase A16
 
 ### 3.11 Admin & Settings
 
@@ -192,15 +192,15 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] Room member add/remove (Edge Function)
 - [x] Permission-gated admin access
 - [x] Profile management
-- [ ] **Reset session modal** — Original has `showResetSessionModal()` to clear all in-progress meeting data. Current: no equivalent.
-- [ ] **Room deletion** — Current: rooms can be created but not deleted/archived.
+- [x] **Reset session modal** — ✅ Phase A17
+- [x] **Room deletion/archiving** — ✅ Phase A18
 
 ### 3.12 Polish & UX
 
-- [ ] **Toast notification system** — Original has a `showToast()` system for user feedback. Current: no toast/notification system (actions complete silently).
+- [x] **Toast notification system** — ✅ Phase A1
 - [ ] **Loading states per section** — Original shows section-specific loading. Current: initial loading only.
 - [ ] **Empty state illustrations** — Original has custom empty states per section. Current: basic "no data" text.
-- [ ] **Responsive mobile layout** — Original has mobile-optimized views. Current: desktop-focused.
+- [x] **Responsive mobile layout** — ✅ Phase A19
 
 ---
 
@@ -212,15 +212,15 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 
 - [x] Admin can view all personal todos (Team View toggle on PersonalTodosPage)
 - [x] Admin can assign todos to others (AssignTodoModal with priority, recurring, due date)
-- [ ] **Admin calendar view showing all team members' items** — CalendarPage currently shows only the logged-in user's items. Need a team calendar overlay or toggle for admin users showing all team members' tasks color-coded by person.
-- [ ] **Admin quick-assign from calendar view** — Allow admin to click a calendar date and assign a new todo/checklist item to any team member from the calendar interface.
+- [x] **Admin calendar view showing all team members' items** — ✅ Phase C1
+- [x] **Admin quick-assign from calendar view** — ✅ Phase C2
 
 ### 4.2 Calendar Checklist Integration
 
 **Requirement:** Users can mark checklist items complete directly from calendar view.
 
-- [ ] **Clickable todo/checklist items on calendar** — CalendarPage shows items as colored dots with a detail panel, but items can't be marked complete from the calendar. Need inline status toggle (checkbox) on calendar items.
-- [ ] **Calendar day detail panel with completion** — The existing detail panel should include toggle buttons for marking items complete/incomplete without navigating away.
+- [x] **Clickable todo/checklist items on calendar** — ✅ Phase C3
+- [x] **Calendar day detail panel with completion** — ✅ Phase C4
 
 ### 4.3 Prioritization System
 
@@ -229,10 +229,10 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] `priority` field exists on `todos`, `personal_todos`, `issues` tables
 - [x] `usePersonalTodos` hook `addTodo` accepts priority parameter
 - [x] AssignTodoModal exposes priority selector (low/medium/high/critical)
-- [ ] **Priority in PersonalTodosPage add form** — The hook supports priority but the personal todos add form doesn't expose it. Need priority selector in the quick-add flow.
-- [ ] **Priority badges in todo lists** — Show priority badges consistently across all todo views (personal todos, meeting todos, calendar items).
-- [ ] **Priority-based sorting** — Allow sorting todos by priority (critical first) in addition to date/status sorting.
-- [ ] **Overdue + priority escalation** — Automatic priority bump when items become overdue.
+- [x] **Priority in PersonalTodosPage add form** — ✅ Phase B1
+- [x] **Priority badges in todo lists** — ✅ Phase B2
+- [x] **Priority-based sorting** — ✅ Phase B3
+- [x] **Overdue + priority escalation** — ✅ Phase B8
 
 ### 4.4 Categorization System
 
@@ -253,12 +253,12 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 | `strategic` | Long-term strategic initiatives |
 | `general` | Uncategorized |
 
-- [ ] **Add `category` column to `personal_todos` table** — Migration needed. The hook's `addTodo` already accepts `category` but the column may not exist in the DB schema.
-- [ ] **Add `category` column to `todos` table** — Same migration for meeting todos.
-- [ ] **Category selector in add/assign forms** — Dropdown in PersonalTodosPage add form and AssignTodoModal.
-- [ ] **Category filter chips** — Filter bar on todo pages to show/hide by category.
-- [ ] **Category color coding** — Consistent color per category across all views.
-- [ ] **Seed categories into Claude Context DB** — Store category definitions in context DB so Claude recommendations can reference them.
+- [x] **Add `category` column to `personal_todos` table** — ✅ Phase B4
+- [x] **Add `category` column to `todos` table** — ✅ Phase B4
+- [x] **Category selector in add/assign forms** — ✅ Phase B5
+- [x] **Category filter chips** — ✅ Phase B6
+- [x] **Category color coding** — ✅ Phase B7
+- [x] **Seed categories into Claude Context DB** — ✅ Phase E3
 
 ### 4.5 Claude AI Priority Recommendations
 
@@ -267,10 +267,10 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 - [x] `claude_recommendations` table exists with target_type, priority_level, category, reasoning
 - [x] `useClaudeRecommendations` hook with fetch/dismiss/markActedOn
 - [x] ClaudeRecommendations component with priority config and category icons
-- [ ] **Dashboard placement** — Show top 3 Claude recommendations on the dashboard page with expand/dismiss actions.
-- [ ] **Context DB bridge refinement** — The `context-db-bridge` Edge Function needs updating to generate recommendations based on overdue items, priority conflicts, and workload balance.
-- [ ] **"Ask Claude" button** — Add a button on todo/checklist pages that triggers a recommendation refresh from the Edge Function.
-- [ ] **Recommendation reasoning display** — Show Claude's reasoning for each priority suggestion (field exists but may not be populated).
+- [x] **Dashboard placement** — ✅ Phase E1
+- [x] **Context DB bridge refinement** — ✅ Phase E7
+- [x] **"Ask Claude" button** — ✅ Phase E2
+- [x] **Recommendation reasoning display** — ✅ Phase E6
 
 ### 4.6 Slack Integration
 
@@ -278,11 +278,11 @@ Comparing original `eos-level10-live.html` (2401 lines, Firebase) against curren
 
 The Slack bot infrastructure already exists (Vercel serverless + Claude API + Supabase context loader). Slack IDs are stored on profiles.
 
-- [ ] **L-10 meeting recap to Slack** — Post formatted recap to a designated channel when a meeting session is recorded.
-- [ ] **Todo assignment notifications** — Slack DM when a todo is assigned to a user.
-- [ ] **Overdue reminders** — Scheduled Slack messages for overdue todos/rocks.
-- [ ] **Meeting start notification** — Notify room members when a meeting begins.
-- [ ] **Daily standup digest** — Morning Slack message with today's priorities pulled from LOS.
+- [x] **L-10 meeting recap to Slack** — ✅ Phase F1
+- [x] **Todo assignment notifications** — ✅ Phase F2
+- [x] **Overdue reminders** — ✅ Phase F3
+- [x] **Meeting start notification** — ✅ Phase F4
+- [x] **Daily standup digest** — ✅ Phase F5
 
 ### 4.7 Cross-Functional Task Assignment
 
@@ -297,29 +297,29 @@ The Slack bot infrastructure already exists (Vercel serverless + Claude API + Su
 
 **Requirement:** L-10s live in a distinct/separate area on the Home Screen.
 
-- [ ] **Dashboard L-10 section** — Add a dedicated "L-10 Meetings" card/section on the DashboardPage showing: next scheduled meeting, meeting room quick-links, last meeting stats (rating, date), meeting streak.
-- [ ] **Quick-enter meeting button** — One-click to enter your primary meeting room from dashboard.
-- [ ] **Upcoming meetings widget** — Show next 3 scheduled meetings with countdown timers.
+- [x] **Dashboard L-10 section** — ✅ Phase C5
+- [x] **Quick-enter meeting button** — ✅ Phase C5
+- [x] **Upcoming meetings widget** — ✅ Phase C6
 
 ### 4.9 Google Calendar Sync
 
 **Requirement:** L-10 meetings scheduled in app show on each assigned user's Google Calendar.
 
-- [ ] **Google Calendar OAuth scope** — Extend current Google Auth to request `calendar.events` scope.
-- [ ] **Meeting scheduling flow** — Add ability to schedule L-10 meetings with date/time in the rooms page or a dedicated scheduling modal.
-- [ ] **Calendar event creation** — When a meeting is scheduled, create a Google Calendar event for all room members via the Calendar API.
-- [ ] **Calendar event updates** — Sync changes (reschedule, cancel) back to Google Calendar.
-- [ ] **ICS fallback** — For users who decline calendar scope, generate downloadable .ics file.
+- [x] **Google Calendar OAuth scope** — ✅ Phase G1
+- [x] **Meeting scheduling flow** — ✅ Phase G2
+- [x] **Calendar event creation** — ✅ Phase G3
+- [x] **Calendar event updates** — ✅ Phase G4
+- [x] **ICS fallback** — ✅ Phase G5
 
 ### 4.10 Claude ↔ App ↔ Context DB Workflow
 
 **Requirement:** Clean, intelligent, consistent workflow between app priority setting, Claude, and Claude Context DB.
 
-- [ ] **Session logging on meeting record** — When a meeting session is recorded, log key data (rating, stats, attendees, cascading messages) to the context DB `session_log` table.
-- [ ] **Todo completion tracking** — Log significant todo completions to context DB for Claude to learn patterns.
-- [ ] **Priority pattern analysis** — Edge Function that analyzes completion patterns and generates recommendations: "You complete cultivation tasks fastest on Tuesdays" or "High-priority items from Sam are often overdue."
-- [ ] **Context DB category seeding** — Populate `business_context` table with LOS-specific categories, role definitions, and workflow patterns.
-- [ ] **Bi-directional sync** — App reads recommendations from context DB; Claude writes recommendations based on user interactions through Slack bot.
+- [x] **Session logging on meeting record** — ✅ Phase E4
+- [x] **Todo completion tracking** — ✅ Phase E7
+- [x] **Priority pattern analysis** — ✅ Phase E5
+- [x] **Context DB category seeding** — ✅ Phase E3
+- [x] **Bi-directional sync** — ✅ Phase E7
 
 ---
 
@@ -483,6 +483,46 @@ These items bring the current L-10 to full parity with the original HTML app.
 - [x] G4. Calendar event update/cancel sync
 - [x] G5. ICS fallback for non-Calendar users
 
+### Phase H — Reporting & Analytics (Priority: HIGH)
+
+Data already exists in Context DB and meeting_sessions. This phase surfaces it visually.
+
+- [ ] H1. Meeting ratings trend chart (line chart, last 12 meetings)
+- [ ] H2. Todo completion rate over time (weekly rolling %)
+- [ ] H3. Rock health dashboard (on-track/off-track/done breakdown per quarter)
+- [ ] H4. Scorecard metrics trend visualization (sparklines or mini charts per metric)
+- [ ] H5. Team productivity heatmap (completions by person × week)
+- [ ] H6. IDS resolution metrics (avg time-to-resolve, issues per meeting trend)
+- [ ] H7. Exportable PDF/CSV reports for leadership review
+- [ ] H8. Dashboard analytics summary card (key KPIs at a glance)
+
+### Phase I — V/TO (Vision/Traction Organizer) (Priority: HIGH)
+
+The EOS strategic planning document — a single-page view connecting long-term vision to quarterly execution.
+
+- [ ] I1. V/TO data model (core_values, core_focus, ten_year_target, three_year_picture, one_year_plan, quarterly_rocks)
+- [ ] I2. V/TO page with single-page scrollable layout
+- [ ] I3. Core Values display with descriptions and behavioral examples
+- [ ] I4. Core Focus section (purpose/cause/passion + niche)
+- [ ] I5. 10-Year Target with progress indicator
+- [ ] I6. 3-Year Picture with revenue, profit, and measurables
+- [ ] I7. 1-Year Plan with goals connected to quarterly rocks
+- [ ] I8. V/TO edit mode (owner/admin only) with auto-save
+- [ ] I9. V/TO sharing — read-only view for team members
+- [ ] I10. V/TO to Context DB sync (strategic context for Claude recommendations)
+
+### Phase J — Smarter Claude AI (Priority: MEDIUM)
+
+Add an LLM layer on top of the existing algorithmic priority system for deeper pattern recognition and natural language interaction.
+
+- [ ] J1. LLM-powered priority analysis Edge Function (upgrade from algorithmic scoring)
+- [ ] J2. Natural language query interface ("How did Q1 rocks perform?")
+- [ ] J3. Proactive meeting agenda suggestions based on overdue items and patterns
+- [ ] J4. Weekly team health summary generated from Context DB patterns
+- [ ] J5. Smart todo suggestions based on rock progress and historical patterns
+- [ ] J6. Meeting preparation briefing (pre-meeting context card per attendee)
+- [ ] J7. Anomaly detection alerts (unusual scorecard dips, completion rate drops)
+
 ---
 
 ## Progress Tracker
@@ -496,7 +536,10 @@ These items bring the current L-10 to full parity with the original HTML app.
 | E — Claude AI | 7 | 7 | 100% |
 | F — Slack | 5 | 5 | 100% |
 | G — Google Calendar | 5 | 5 | 100% |
-| **Total** | **56** | **56** | **100%** |
+| H — Reporting & Analytics | 8 | 0 | 0% |
+| I — V/TO | 10 | 0 | 0% |
+| J — Smarter Claude AI | 7 | 0 | 0% |
+| **Total** | **81** | **56** | **69%** |
 
 ---
 
