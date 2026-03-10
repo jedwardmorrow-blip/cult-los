@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   ListChecks,
   Calendar,
+  Activity,
+  Compass,
+  Bot,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -31,6 +34,9 @@ const navItems = [
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/issues', icon: AlertCircle, label: 'Issues (IDS)' },
   { path: '/rooms', icon: Radio, label: 'L10 Meetings' },
+  { path: '/vto', icon: Compass, label: 'V/TO' },
+  { path: '/analytics', icon: Activity, label: 'Analytics' },
+  { path: '/claude', icon: Bot, label: 'Claude AI' },
   { path: '/team', icon: Users, label: 'Team' },
 ]
 

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import ClaudeRecommendations from '../components/ClaudeRecommendations'
 import { format, differenceInDays, parseISO, isAfter, isBefore, addDays } from 'date-fns'
+import { Activity } from 'lucide-react'
+import { Link as RouterLink } from 'react-router-dom'
 
 const STATUS_CONFIG = {
   not_started: { label: 'Not Started', cls: 'text-cult-text', dot: 'bg-cult-muted' },
@@ -58,6 +60,9 @@ export default function DashboardPage() {
   const [meetingStreak, setMeetingStreak] = useState(0)
   // C6: Recent sessions
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
+  // H8: Analytics summary
+  const [avgRating, setAvgRating] = useState<number | null>(null)
+  const [todoCompletionRate, setTodoCompletionRate] = useState<number>(0)
 
   useEffect(() => { if (profile) fetchAll() }, [profile])
 
@@ -140,6 +145,21 @@ export default function DashboardPage() {
         ...s,
         room_name: roomMap.get(s.room_id) || 'Unknown',
       })))
+
+      // H8: Compute avg rating from recent sessions
+      const rated = recentData.filter(s => s.rating != null)
+      if (rated.length > 0) {
+        setAvgRating(parseFloat((rated.reduce((sum, s) => sum + (s.rating || 0), 0) / rated.length).toFixed(1)))
+      }
+    }
+
+    // H8: Todo completion rate
+    const [{ count: completedCount }, { count: totalCount }] = await Promise.all([
+      supabase.from('todos').select('*', { count: 'exact', head: true }).eq('status', 'complete'),
+      supabase.from('todos').select('*', { count: 'exact', head: true }),
+    ])
+    if ((totalCount ?? 0) > 0) {
+      setTodoCompletionRate(Math.round(((completedCount ?? 0) / (totalCount ?? 1)) * 100))
     }
   }
 
@@ -192,6 +212,33 @@ export default function DashboardPage() {
 
       {/* ── E1: Claude Recommendations (top 3) ── */}
       <ClaudeRecommendations maxItems={3} compact />
+
+      {/* ── H8: Analytics Summary Card ── */}
+      <Link to="/analytics" className="block card p-4 hover:border-cult-gold/30 transition-colors group">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Activity size={14} className="text-cult-gold" />
+            <span className="font-mono text-xs text-cult-text tracking-wider uppercase">Performance Snapshot</span>
+          </div>
+          <span className="text-cult-gold text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            Full Analytics <ArrowRight size={10} />
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-3">
+          <div>
+            <div className="font-display text-xl text-cult-gold">{avgRating?.toFixed(1) ?? '—'}</div>
+            <div className="font-mono text-[9px] text-cult-text/50 tracking-wider uppercase">Avg Meeting Rating</div>
+          </div>
+          <div>
+            <div className="font-display text-xl text-cult-green-bright">{todoCompletionRate}%</div>
+            <div className="font-mono text-[9px] text-cult-text/50 tracking-wider uppercase">Todo Completion</div>
+          </div>
+          <div>
+            <div className="font-display text-xl text-cult-white">{meetingStreak}<span className="text-sm text-cult-text ml-1">wks</span></div>
+            <div className="font-mono text-[9px] text-cult-text/50 tracking-wider uppercase">Meeting Streak</div>
+          </div>
+        </div>
+      </Link>
 
       {/* ── C5: L-10 Meeting Section ── */}
       {rooms.length > 0 && (

@@ -39,6 +39,9 @@ The app is organized as a React SPA with Supabase backend. Core routes:
 | `/rooms` | RoomsPage | ✅ Working |
 | `/meeting/:roomId` | MeetingRoom | ✅ Working |
 | `/calendar` | CalendarPage | ✅ Working |
+| `/analytics` | AnalyticsPage | ✅ Working |
+| `/vto` | VTOPage | ✅ Working |
+| `/claude` | ClaudeAIPage | ✅ Working |
 | `/admin` | AdminPanel | ✅ Working |
 
 ### Supabase Tables (26 total)
@@ -487,41 +490,41 @@ These items bring the current L-10 to full parity with the original HTML app.
 
 Data already exists in Context DB and meeting_sessions. This phase surfaces it visually.
 
-- [ ] H1. Meeting ratings trend chart (line chart, last 12 meetings)
-- [ ] H2. Todo completion rate over time (weekly rolling %)
-- [ ] H3. Rock health dashboard (on-track/off-track/done breakdown per quarter)
-- [ ] H4. Scorecard metrics trend visualization (sparklines or mini charts per metric)
-- [ ] H5. Team productivity heatmap (completions by person × week)
-- [ ] H6. IDS resolution metrics (avg time-to-resolve, issues per meeting trend)
-- [ ] H7. Exportable PDF/CSV reports for leadership review
-- [ ] H8. Dashboard analytics summary card (key KPIs at a glance)
+- [x] H1. Meeting ratings trend chart (line chart, last 12 meetings)
+- [x] H2. Todo completion rate over time (weekly rolling %)
+- [x] H3. Rock health dashboard (on-track/off-track/done breakdown per quarter)
+- [x] H4. Scorecard metrics trend visualization (sparklines or mini charts per metric)
+- [x] H5. Team productivity heatmap (completions by person × week)
+- [x] H6. IDS resolution metrics (avg time-to-resolve, issues per meeting trend)
+- [x] H7. Exportable PDF/CSV reports for leadership review
+- [x] H8. Dashboard analytics summary card (key KPIs at a glance)
 
 ### Phase I — V/TO (Vision/Traction Organizer) (Priority: HIGH)
 
 The EOS strategic planning document — a single-page view connecting long-term vision to quarterly execution.
 
-- [ ] I1. V/TO data model (core_values, core_focus, ten_year_target, three_year_picture, one_year_plan, quarterly_rocks)
-- [ ] I2. V/TO page with single-page scrollable layout
-- [ ] I3. Core Values display with descriptions and behavioral examples
-- [ ] I4. Core Focus section (purpose/cause/passion + niche)
-- [ ] I5. 10-Year Target with progress indicator
-- [ ] I6. 3-Year Picture with revenue, profit, and measurables
-- [ ] I7. 1-Year Plan with goals connected to quarterly rocks
-- [ ] I8. V/TO edit mode (owner/admin only) with auto-save
-- [ ] I9. V/TO sharing — read-only view for team members
-- [ ] I10. V/TO to Context DB sync (strategic context for Claude recommendations)
+- [x] I1. V/TO data model (core_values, core_focus, ten_year_target, three_year_picture, one_year_plan, quarterly_rocks)
+- [x] I2. V/TO page with single-page scrollable layout
+- [x] I3. Core Values display with descriptions and behavioral examples
+- [x] I4. Core Focus section (purpose/cause/passion + niche)
+- [x] I5. 10-Year Target with progress indicator
+- [x] I6. 3-Year Picture with revenue, profit, and measurables
+- [x] I7. 1-Year Plan with goals connected to quarterly rocks
+- [x] I8. V/TO edit mode (owner/admin only) with auto-save
+- [x] I9. V/TO sharing — read-only view for team members
+- [x] I10. V/TO to Context DB sync (strategic context for Claude recommendations)
 
 ### Phase J — Smarter Claude AI (Priority: MEDIUM)
 
 Add an LLM layer on top of the existing algorithmic priority system for deeper pattern recognition and natural language interaction.
 
-- [ ] J1. LLM-powered priority analysis Edge Function (upgrade from algorithmic scoring)
-- [ ] J2. Natural language query interface ("How did Q1 rocks perform?")
-- [ ] J3. Proactive meeting agenda suggestions based on overdue items and patterns
-- [ ] J4. Weekly team health summary generated from Context DB patterns
-- [ ] J5. Smart todo suggestions based on rock progress and historical patterns
-- [ ] J6. Meeting preparation briefing (pre-meeting context card per attendee)
-- [ ] J7. Anomaly detection alerts (unusual scorecard dips, completion rate drops)
+- [x] J1. LLM-powered priority analysis Edge Function (upgrade from algorithmic scoring)
+- [x] J2. Natural language query interface ("How did Q1 rocks perform?")
+- [x] J3. Proactive meeting agenda suggestions based on overdue items and patterns
+- [x] J4. Weekly team health summary generated from Context DB patterns
+- [x] J5. Smart todo suggestions based on rock progress and historical patterns
+- [x] J6. Meeting preparation briefing (pre-meeting context card per attendee)
+- [x] J7. Anomaly detection alerts (unusual scorecard dips, completion rate drops)
 
 ---
 
@@ -536,10 +539,10 @@ Add an LLM layer on top of the existing algorithmic priority system for deeper p
 | E — Claude AI | 7 | 7 | 100% |
 | F — Slack | 5 | 5 | 100% |
 | G — Google Calendar | 5 | 5 | 100% |
-| H — Reporting & Analytics | 8 | 0 | 0% |
-| I — V/TO | 10 | 0 | 0% |
-| J — Smarter Claude AI | 7 | 0 | 0% |
-| **Total** | **81** | **56** | **69%** |
+| H — Reporting & Analytics | 8 | 8 | 100% |
+| I — V/TO | 10 | 10 | 100% |
+| J — Smarter Claude AI | 7 | 7 | 100% |
+| **Total** | **81** | **81** | **100%** |
 
 ---
 

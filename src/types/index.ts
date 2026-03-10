@@ -243,6 +243,39 @@ export interface MeetingSchedule {
   profiles?: { id: string; full_name: string }
 }
 
+// ── Phase I: V/TO (Vision/Traction Organizer) ──
+
+export interface VTO {
+  id: string
+  business_id: string
+  core_values: CoreValue[]
+  purpose: string | null
+  niche: string | null
+  ten_year_target: string | null
+  ten_year_target_date: string | null
+  three_year_revenue: string | null
+  three_year_profit: string | null
+  three_year_measurables: string[]
+  three_year_picture: string | null
+  one_year_revenue: string | null
+  one_year_profit: string | null
+  one_year_goals: OneYearGoal[]
+  quarterly_theme: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CoreValue {
+  value: string
+  description?: string
+}
+
+export interface OneYearGoal {
+  goal: string
+  status?: 'on_track' | 'off_track' | 'complete'
+}
+
 export interface ClaudeRecommendation {
   id: string
   target_type: string
