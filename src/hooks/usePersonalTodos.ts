@@ -23,7 +23,7 @@ export function usePersonalTodos(targetOwnerId?: string) {
     const [todosRes, completionsRes] = await Promise.all([
       supabase
         .from('personal_todos')
-        .select('*, profiles(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
+        .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
         .eq('owner_id', ownerId)
         .neq('status', 'dropped')
         .order('sort_order')
@@ -323,7 +323,7 @@ export function useAssignedToMeTodos() {
     const [todosRes, completionsRes] = await Promise.all([
       supabase
         .from('personal_todos')
-        .select('*, profiles(id, full_name, avatar_url)')
+        .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
         .in('id', todoIds)
         .neq('status', 'dropped')
         .order('created_at', { ascending: false }),
@@ -365,7 +365,7 @@ export function useAllPersonalTodos() {
     const [todosRes, completionsRes] = await Promise.all([
       supabase
         .from('personal_todos')
-        .select('*, profiles(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
+        .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
         .neq('status', 'dropped')
         .order('owner_id')
         .order('sort_order'),
