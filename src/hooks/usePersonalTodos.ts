@@ -23,7 +23,7 @@ export function usePersonalTodos(targetOwnerId?: string) {
     const [todosRes, completionsRes] = await Promise.all([
       supabase
         .from('personal_todos')
-        .select('*, profiles(id, full_name, avatar_url)')
+        .select('*, profiles(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
         .eq('owner_id', ownerId)
         .neq('status', 'dropped')
         .order('sort_order')
@@ -86,6 +86,9 @@ export function usePersonalTodos(targetOwnerId?: string) {
       due_date?: string
       is_recurring?: boolean
       recurrence_pattern?: string
+      priority?: string
+      category?: string
+      assigned_by?: string
     }) => {
       if (!ownerId) return null
       const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sort_order)) : 0
@@ -98,6 +101,9 @@ export function usePersonalTodos(targetOwnerId?: string) {
           due_date: todo.due_date || null,
           is_recurring: todo.is_recurring || false,
           recurrence_pattern: todo.recurrence_pattern || null,
+          priority: todo.priority || 'medium',
+          category: todo.category || null,
+          assigned_by: todo.assigned_by || null,
           sort_order: maxSort + 1,
         })
         .select()
@@ -132,7 +138,7 @@ export function usePersonalTodos(targetOwnerId?: string) {
         // For one-time: toggle status
         if (todo.status === 'complete') {
           await supabase
-            .from('personal_todos')
+               .from('personal_todos')
             .update({ status: 'pending', completed_at: null, updated_at: new Date().toISOString() })
             .eq('id', todoId)
         } else {
@@ -189,42 +195,94 @@ export function usePersonalTodos(targetOwnerId?: string) {
   }
 }
 
+// Hook for admin: assign a todo to any team member
+export function useAssignTodo() {
+  const { user } = useAuth()
+
+  const assignTodo = async (params: {
+    owner_id: string
+    title: string
+    description?: string
+    due_date?: string
+    is_recurring?: boolean
+    recurrence_pattern?: string
+    priority?: string
+    category?: string
+  }) => {
+    if (!user?.id) return null
+
+    // Get current max sort_order for the target user
+    const { data: existing } = await supabase
+      .from('personal_todos')
+      .select('sort_order')
+      .eq('owner_id', params.owner_id)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+
+    const maxSort = existing?.[0]?.sort_order ?? 0
+
+    const { data, error } = await supabase
+      .from('personal_todos')
+      .insert({
+        owner_id: params.owner_id,
+        title: params.title,
+        description: params.description || null,
+        due_date: params.due_date || null,
+        is_recurring: params.is_recurring || false,
+        recurrence_pattern: params.recurrence_pattern || null,
+        priority: params.priority || 'medium',
+        category: params.category || null,
+        assigned_by: user.id,
+        sort_order: maxSort + 1,
+      })
+      .select()
+      .single()
+
+    if (error) console.error('Assign todo error:', error)
+    return data
+  }
+
+  return { assignTodo }
+}
+
 // Hook for admin: fetch all users' todos
 export function useAllPersonalTodos() {
   const [allTodos, setAllTodos] = useState<PersonalTodo[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetch() {
-      const today = todayStr()
-      const [todosRes, completionsRes] = await Promise.all([
-        supabase
-          .from('personal_todos')
-          .select('*, profiles(id, full_name, avatar_url)')
-          .neq('status', 'dropped')
-          .order('owner_id')
-          .order('sort_order'),
-        supabase
-          .from('personal_todo_completions')
-          .select('*')
-          .eq('completed_date', today),
-      ])
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    const today = todayStr()
+    const [todosRes, completionsRes] = await Promise.all([
+      supabase
+        .from('personal_todos')
+        .select('*, profiles(id, full_name, avatar_url), assigned_by_profile:profiles!personal_todos_assigned_by_fkey(id, full_name, avatar_url)')
+        .neq('status', 'dropped')
+        .order('owner_id')
+        .order('sort_order'),
+      supabase
+        .from('personal_todo_completions')
+        .select('*')
+        .eq('completed_date', today),
+    ])
 
-      if (todosRes.data) {
-        const todayCompletionIds = new Set(
-          (completionsRes.data || []).map(c => c.todo_id)
-        )
-        setAllTodos(
-          todosRes.data.map(t => ({
-            ...t,
-            completed_today: todayCompletionIds.has(t.id),
-          })) as PersonalTodo[]
-        )
-      }
-      setLoading(false)
+    if (todosRes.data) {
+      const todayCompletionIds = new Set(
+        (completionsRes.data || []).map(c => c.todo_id)
+      )
+      setAllTodos(
+        todosRes.data.map(t => ({
+          ...t,
+          completed_today: todayCompletionIds.has(t.id),
+        })) as PersonalTodo[]
+      )
     }
-    fetch()
+    setLoading(false)
   }, [])
 
-  return { allTodos, loading }
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  return { allTodos, loading, refresh: fetchAll }
 }
