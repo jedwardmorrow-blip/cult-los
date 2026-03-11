@@ -12,6 +12,7 @@ export default {
         cult: {
           black: '#0A0A0A',
           dark: '#111111',
+          surface: '#141414',
           card: '#161616',
           border: '#222222',
           muted: '#2A2A2A',
