@@ -19,6 +19,7 @@ import {
   Activity,
   Compass,
   Bot,
+  DollarSign,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -36,6 +37,7 @@ const navItems = [
   { path: '/rooms', icon: Radio, label: 'L10 Meetings' },
   { path: '/vto', icon: Compass, label: 'V/TO' },
   { path: '/analytics', icon: Activity, label: 'Analytics' },
+  { path: '/revenue', icon: DollarSign, label: 'Revenue' },
   { path: '/claude', icon: Bot, label: 'Claude AI' },
   { path: '/team', icon: Users, label: 'Team' },
 ]
