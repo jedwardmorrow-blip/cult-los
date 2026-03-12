@@ -108,7 +108,7 @@ export default function CalendarPage() {
             .neq('status', 'dropped'),
           supabase
             .from('todos')
-            .select('*, profiles(id, full_name, avatar_url)')
+            .select('*, profiles!todos_owner_id_fkey(id, full_name, avatar_url)')
             .neq('status', 'dropped'),
         ])
 
@@ -133,7 +133,7 @@ export default function CalendarPage() {
                 .neq('status', 'dropped'),
           supabase
             .from('todos')
-            .select('*, profiles(id, full_name, avatar_url)')
+            .select('*, profiles!todos_owner_id_fkey(id, full_name, avatar_url)')
             .eq('owner_id', user.id)
             .neq('status', 'dropped'),
         ])
