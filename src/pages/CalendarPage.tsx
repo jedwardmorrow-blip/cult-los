@@ -104,7 +104,7 @@ export default function CalendarPage() {
         const [personalRes, teamRes] = await Promise.all([
           supabase
             .from('personal_todos')
-            .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
+            .select('*, profiles(id, full_name, avatar_url)')
             .neq('status', 'dropped'),
           supabase
             .from('todos')
@@ -118,13 +118,19 @@ export default function CalendarPage() {
         setPersonalTodos(personalRes.data || [])
         setTeamTodos(teamRes.data || [])
       } else {
-        // Normal user — only own todos
+        // My View — own todos + todos I assigned to others
         const [personalRes, teamRes] = await Promise.all([
-          supabase
-            .from('personal_todos')
-            .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
-            .eq('owner_id', user.id)
-            .neq('status', 'dropped'),
+          canAssignTodos
+            ? supabase
+                .from('personal_todos')
+                .select('*, profiles(id, full_name, avatar_url)')
+                .or(`owner_id.eq.${user.id},assigned_by.eq.${user.id}`)
+                .neq('status', 'dropped')
+            : supabase
+                .from('personal_todos')
+                .select('*, profiles(id, full_name, avatar_url)')
+                .eq('owner_id', user.id)
+                .neq('status', 'dropped'),
           supabase
             .from('todos')
             .select('*, profiles(id, full_name, avatar_url)')
@@ -143,7 +149,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, viewMode, canViewAllTodos])
+  }, [user?.id, viewMode, canViewAllTodos, canAssignTodos])
 
   useEffect(() => {
     fetchTodos()
@@ -613,9 +619,9 @@ export default function CalendarPage() {
                           <span className={`text-[9px] font-mono ${config.color}`}>
                             {config.label}
                           </span>
-                          {viewMode === 'team' && todo.owner_name && (
+                          {(viewMode === 'team' || (todo.owner_id && todo.owner_id !== user?.id)) && todo.owner_name && (
                             <span className="text-[9px] font-mono text-cult-text/40">
-                              {todo.owner_name.split(' ')[0]}
+                              {todo.owner_id !== user?.id ? `→ ${todo.owner_name.split(' ')[0]}` : todo.owner_name.split(' ')[0]}
                             </span>
                           )}
                         </div>
@@ -652,6 +658,10 @@ export default function CalendarPage() {
         <AssignTodoModal
           onClose={() => setShowAssignModal(false)}
           onAssigned={() => {
+            // Switch to team view after assigning so the task is immediately visible
+            if (viewMode === 'mine' && canViewAllTodos) {
+              setViewMode('team')
+            }
             fetchTodos()
             showToast('Task assigned!', 'success')
           }}
