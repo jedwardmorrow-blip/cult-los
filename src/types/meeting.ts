@@ -169,4 +169,6 @@ export interface MeetingContextType {
   resetMeeting: () => Promise<void>
   // A20: Meeting streak
   meetingStreak: number
+  // Timer duration adjustment
+  updateRoomDuration: (minutes: number) => Promise<void>
 }

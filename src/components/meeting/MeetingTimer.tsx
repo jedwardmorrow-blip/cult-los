@@ -3,10 +3,11 @@ import { useMeeting } from '../../hooks/useMeetingRoom'
 import { Play, Pause, RotateCcw, Settings } from 'lucide-react'
 
 export default function MeetingTimer() {
-  const { timer, startTimer, stopTimer, resetTimer, room } = useMeeting()
+  const { timer, startTimer, stopTimer, resetTimer, room, updateRoomDuration } = useMeeting()
   const [remaining, setRemaining] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [customMinutes, setCustomMinutes] = useState('')
+  const [durationInput, setDurationInput] = useState('')
   const totalSecondsRef = useRef(0)
 
   useEffect(() => {
@@ -126,16 +127,50 @@ export default function MeetingTimer() {
       <button onClick={handleReset} className="w-7 h-7 rounded-md flex items-center justify-center bg-cult-muted text-cult-text hover:text-cult-white hover:bg-cult-border transition-colors" title="Reset timer"><RotateCcw size={12} /></button>
       <button onClick={() => setShowSettings(!showSettings)} className="w-7 h-7 rounded-md flex items-center justify-center bg-cult-muted text-cult-text hover:text-cult-white hover:bg-cult-border transition-colors" title="Timer presets"><Settings size={12} /></button>
       {showSettings && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-cult-card border border-cult-border rounded-lg shadow-xl z-50 p-3 space-y-3 animate-fade-in">
-          <div className="text-[10px] font-mono text-cult-text/60 tracking-wider uppercase">Presets</div>
+        <div className="absolute top-full right-0 mt-2 w-52 bg-cult-card border border-cult-border rounded-lg shadow-xl z-50 p-3 space-y-3 animate-fade-in">
+          <div className="text-[10px] font-mono text-cult-text/60 tracking-wider uppercase">Quick Start</div>
           <div className="grid grid-cols-3 gap-1.5">
-            {[60, 75, 90, 30, 45, 120].map(m => (
+            {[30, 45, 60, 75, 90, 120].map(m => (
               <button key={m} onClick={() => handlePreset(m)} className="px-2 py-1.5 rounded-md bg-cult-muted text-cult-text text-xs font-mono hover:bg-cult-border hover:text-cult-white transition-colors">{m}m</button>
             ))}
           </div>
           <div className="flex gap-1.5">
             <input className="input-field text-xs flex-1 py-1.5" placeholder="Custom min" type="number" value={customMinutes} onChange={e => setCustomMinutes(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCustomStart()} />
             <button onClick={handleCustomStart} className="btn-primary text-xs px-3 py-1.5">Go</button>
+          </div>
+          <div className="border-t border-cult-border pt-3">
+            <div className="text-[10px] font-mono text-cult-text/60 tracking-wider uppercase mb-2">Room Default ({room?.timer_duration_minutes || 90}m)</div>
+            <div className="flex gap-1.5">
+              <input
+                className="input-field text-xs flex-1 py-1.5"
+                placeholder={String(room?.timer_duration_minutes || 90)}
+                type="number"
+                min={5}
+                max={300}
+                value={durationInput}
+                onChange={e => setDurationInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const m = parseInt(durationInput)
+                    if (m >= 5 && m <= 300) {
+                      updateRoomDuration(m)
+                      setDurationInput('')
+                    }
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const m = parseInt(durationInput)
+                  if (m >= 5 && m <= 300) {
+                    updateRoomDuration(m)
+                    setDurationInput('')
+                  }
+                }}
+                className="btn-ghost text-xs px-3 py-1.5 border border-cult-border"
+              >Save</button>
+            </div>
+            <p className="text-[9px] text-cult-text/40 mt-1.5 font-mono">Sets the default meeting length for this room</p>
           </div>
         </div>
       )}

@@ -324,6 +324,8 @@ export function MeetingProvider({ roomId, children }: Props) {
       room_id: roomId, running: true, expires_at: expiresAt,
       base_seconds: seconds, updated_at: new Date().toISOString(),
     }
+    // Update local state immediately (don't rely solely on realtime)
+    setTimer(timerState)
     await supabase.from('meeting_timer').upsert(timerState)
     supabase.channel(`meeting:${roomId}`).send({
       type: 'broadcast', event: 'timer', payload: timerState,
@@ -337,11 +339,18 @@ export function MeetingProvider({ roomId, children }: Props) {
   }, [roomId, timer, user])
 
   const stopTimer = useCallback(async () => {
+    const remaining = timer?.expires_at
+      ? Math.max(0, Math.floor((new Date(timer.expires_at).getTime() - Date.now()) / 1000))
+      : timer?.base_seconds || 0
     const timerState: MeetingTimerState = {
-      room_id: roomId, running: false, expires_at: undefined,
-      base_seconds: timer?.base_seconds || 0, updated_at: new Date().toISOString(),
+      room_id: roomId, running: false,
+      base_seconds: remaining, updated_at: new Date().toISOString(),
     }
-    await supabase.from('meeting_timer').upsert(timerState)
+    // Update local state immediately
+    setTimer(timerState)
+    await supabase.from('meeting_timer').upsert({
+      ...timerState, expires_at: null,
+    })
     supabase.channel(`meeting:${roomId}`).send({
       type: 'broadcast', event: 'timer', payload: timerState,
     })
@@ -350,13 +359,24 @@ export function MeetingProvider({ roomId, children }: Props) {
   const resetTimer = useCallback(async () => {
     const defaultMinutes = room?.timer_duration_minutes || 90
     const timerState: MeetingTimerState = {
-      room_id: roomId, running: false, expires_at: undefined,
+      room_id: roomId, running: false,
       base_seconds: defaultMinutes * 60, updated_at: new Date().toISOString(),
     }
-    await supabase.from('meeting_timer').upsert(timerState)
+    // Update local state immediately
+    setTimer(timerState)
+    await supabase.from('meeting_timer').upsert({
+      ...timerState, expires_at: null,
+    })
     supabase.channel(`meeting:${roomId}`).send({
       type: 'broadcast', event: 'timer', payload: timerState,
     })
+  }, [roomId, room])
+
+  // ─── Update room duration ───
+  const updateRoomDuration = useCallback(async (minutes: number) => {
+    if (!room) return
+    await supabase.from('meeting_rooms').update({ timer_duration_minutes: minutes }).eq('id', roomId)
+    setRoom({ ...room, timer_duration_minutes: minutes })
   }, [roomId, room])
 
   const handleSetSection = useCallback((sectionId: SectionId) => {
@@ -637,7 +657,7 @@ export function MeetingProvider({ roomId, children }: Props) {
       // Phase 4: Conclude
       concludeRating, concludeCascading,
       setConcludeRating, setConcludeCascading, recordSession,
-      resetMeeting, meetingStreak,
+      resetMeeting, meetingStreak, updateRoomDuration,
     }}>
       {children}
     </MeetingContext.Provider>
