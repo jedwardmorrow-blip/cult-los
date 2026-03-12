@@ -354,6 +354,65 @@ export function useAssignedToMeTodos() {
   return { assignedTodos, loading, refresh: fetchAssigned }
 }
 
+// Fetch todos the current user assigned to OTHER people
+export function useAssignedByMeTodos() {
+  const { user } = useAuth()
+  const [assignedByMe, setAssignedByMe] = useState<PersonalTodo[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAssignedByMe = useCallback(async () => {
+    if (!user?.id) return
+    setLoading(true)
+
+    const [todosRes, completionsRes] = await Promise.all([
+      supabase
+        .from('personal_todos')
+        .select('*, profiles!personal_todos_owner_id_fkey(id, full_name, avatar_url)')
+        .eq('assigned_by', user.id)
+        .neq('owner_id', user.id)
+        .neq('status', 'dropped')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('personal_todo_completions')
+        .select('*')
+        .eq('completed_date', todayStr()),
+    ])
+
+    if (todosRes.data) {
+      const todayCompletionIds = new Set(
+        (completionsRes.data || []).map(c => c.todo_id)
+      )
+      setAssignedByMe(
+        todosRes.data.map(t => ({
+          ...t,
+          completed_today: todayCompletionIds.has(t.id),
+        })) as PersonalTodo[]
+      )
+    }
+    setLoading(false)
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchAssignedByMe()
+  }, [fetchAssignedByMe])
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel('assigned-by-me-' + user.id)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'personal_todos' },
+        () => fetchAssignedByMe()
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id, fetchAssignedByMe])
+
+  return { assignedByMe, loading, refresh: fetchAssignedByMe }
+}
+
 // Hook for admin: fetch all users' todos
 export function useAllPersonalTodos() {
   const [allTodos, setAllTodos] = useState<PersonalTodo[]>([])

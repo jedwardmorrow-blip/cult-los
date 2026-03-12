@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
-import { usePersonalTodos, useAllPersonalTodos, useAssignedToMeTodos } from '../hooks/usePersonalTodos'
+import { usePersonalTodos, useAllPersonalTodos, useAssignedToMeTodos, useAssignedByMeTodos } from '../hooks/usePersonalTodos'
 import {
   Plus,
   Check,
@@ -88,9 +88,11 @@ function MyTodoView() {
     usePersonalTodos()
   // D5: Cross-department assigned tasks
   const { assignedTodos, loading: assignedLoading } = useAssignedToMeTodos()
+  // Todos I assigned to other people
+  const { assignedByMe, loading: assignedByMeLoading } = useAssignedByMeTodos()
   const [newTitle, setNewTitle] = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
-  const [dueDate, setDueDate] = useState('')
+  const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0])
   const [priority, setPriority] = useState<string>('medium')
   const [category, setCategory] = useState<string>('')
   const [showForm, setShowForm] = useState(false)
@@ -110,7 +112,7 @@ function MyTodoView() {
     })
     setNewTitle('')
     setIsRecurring(false)
-    setDueDate('')
+    setDueDate(new Date().toISOString().split('T')[0])
     setPriority('medium')
     setCategory('')
     setShowForm(false)
@@ -361,6 +363,58 @@ function MyTodoView() {
                   {todo.profiles && (
                     <span className="block text-[10px] text-cult-text/40 mt-0.5">
                       from {todo.profiles.full_name}
+                    </span>
+                  )}
+                </div>
+                {todo.priority && todo.priority !== 'medium' && (() => {
+                  const cfg = PRIORITY_CONFIG[todo.priority]
+                  if (!cfg) return null
+                  const Icon = cfg.icon
+                  return (
+                    <span className={`flex items-center gap-0.5 text-[9px] font-mono tracking-wider ${cfg.color} flex-shrink-0`}>
+                      <Icon size={10} />
+                      {cfg.label}
+                    </span>
+                  )
+                })()}
+                {todo.due_date && (
+                  <span className="text-[10px] font-mono text-cult-text/50 flex-shrink-0">
+                    {todo.due_date}
+                  </span>
+                )}
+              </div>
+            ))}
+        </TodoSection>
+      )}
+
+      {/* Todos I assigned to other people */}
+      {!assignedByMeLoading && assignedByMe.length > 0 && (
+        <TodoSection
+          title="Assigned by Me"
+          icon={<Users size={12} className="text-purple-400/70" />}
+          count={String(assignedByMe.filter(t => t.status !== 'complete').length)}
+        >
+          {assignedByMe
+            .filter(t => t.status !== 'complete')
+            .map(todo => (
+              <div
+                key={todo.id}
+                className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-cult-muted/20"
+              >
+                <div
+                  className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                    todo.status === 'complete'
+                      ? 'bg-cult-gold/20 border-cult-gold/40'
+                      : 'border-cult-border'
+                  }`}
+                >
+                  {todo.status === 'complete' && <Check size={12} className="text-cult-gold" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-cult-white">{todo.title}</span>
+                  {todo.profiles && (
+                    <span className="block text-[10px] text-cult-text/40 mt-0.5">
+                      → {todo.profiles.full_name}
                     </span>
                   )}
                 </div>
