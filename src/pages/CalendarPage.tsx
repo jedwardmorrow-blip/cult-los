@@ -22,6 +22,7 @@ interface DayTodo {
   owner_id?: string
   owner_name?: string
   priority?: string
+  assigned_by?: string
 }
 
 interface TeamMember {
@@ -209,6 +210,7 @@ export default function CalendarPage() {
           owner_id: t.owner_id,
           owner_name: (t as any).profiles?.full_name || 'Unknown',
           priority: t.priority,
+          assigned_by: (t as any).assigned_by || undefined,
         }))
 
       const teamForDate: DayTodo[] = teamTodos
@@ -224,6 +226,7 @@ export default function CalendarPage() {
           owner_id: t.owner_id || undefined,
           owner_name: (t as any).profiles?.full_name || 'Unassigned',
           priority: t.priority,
+          assigned_by: (t as any).assigned_by || undefined,
         }))
 
       return [...personalForDate, ...teamForDate]
@@ -244,9 +247,10 @@ export default function CalendarPage() {
         teamTodos.filter(t => t.due_date === dateStr && (memberFilter === 'all' || t.owner_id === memberFilter)).forEach(t => { if (t.owner_id) ownerIds.add(t.owner_id) })
         return Array.from(ownerIds).slice(0, 4) // max 4 dots
       } else {
-        const hasPersonal = personalTodos.some(t => t.due_date === dateStr)
+        const hasOwn = personalTodos.some(t => t.due_date === dateStr && t.owner_id === user?.id)
+        const hasAssigned = personalTodos.some(t => t.due_date === dateStr && (t as any).assigned_by === user?.id && t.owner_id !== user?.id)
         const hasTeam = teamTodos.some(t => t.due_date === dateStr)
-        return { hasPersonal, hasTeam }
+        return { hasPersonal: hasOwn, hasAssigned, hasTeam }
       }
     },
     [personalTodos, teamTodos, viewMode, memberFilter]
@@ -509,10 +513,13 @@ export default function CalendarPage() {
                       <div key={ownerId} className={`w-1.5 h-1.5 rounded-full ${getMemberColor(ownerId)}`} />
                     ))
                   ) : (
-                    // Normal view: gold=personal, cyan=team
+                    // Normal view: gold=mine, purple=assigned, cyan=team
                     <>
                       {(indicators as any).hasPersonal && (
                         <div className="w-1.5 h-1.5 rounded-full bg-cult-gold" />
+                      )}
+                      {(indicators as any).hasAssigned && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                       )}
                       {(indicators as any).hasTeam && (
                         <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
@@ -610,11 +617,17 @@ export default function CalendarPage() {
                           <span
                             className={`text-[9px] font-mono inline-block ${
                               todo.type === 'personal'
-                                ? 'text-cult-gold/60'
+                                ? (todo.assigned_by === user?.id && todo.owner_id !== user?.id)
+                                  ? 'text-purple-400/60'
+                                  : 'text-cult-gold/60'
                                 : 'text-cyan-400/60'
                             }`}
                           >
-                            {todo.type === 'personal' ? 'Personal' : 'Team'}
+                            {todo.type === 'personal'
+                              ? (todo.assigned_by === user?.id && todo.owner_id !== user?.id)
+                                ? 'Assigned'
+                                : 'Personal'
+                              : 'Team'}
                           </span>
                           <span className={`text-[9px] font-mono ${config.color}`}>
                             {config.label}
@@ -645,6 +658,12 @@ export default function CalendarPage() {
               <div className="w-1.5 h-1.5 rounded-full bg-cult-gold" />
               <span className="text-[9px] font-mono text-cult-text/40">Personal</span>
             </div>
+            {canAssignTodos && (
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                <span className="text-[9px] font-mono text-cult-text/40">Assigned</span>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
               <span className="text-[9px] font-mono text-cult-text/40">Team</span>
