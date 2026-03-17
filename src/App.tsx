@@ -17,6 +17,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import VTOPage from './pages/VTOPage'
 import ClaudeAIPage from './pages/ClaudeAIPage'
 import RevenueOwnershipPage from './pages/RevenueOwnershipPage'
+import AIOpsPage from './pages/AIOpsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/revenue" element={<ProtectedRoute><RevenueOwnershipPage /></ProtectedRoute>} />
           <Route path="/vto" element={<ProtectedRoute><VTOPage /></ProtectedRoute>} />
           <Route path="/claude" element={<ProtectedRoute><ClaudeAIPage /></ProtectedRoute>} />
+          <Route path="/ai-ops" element={<ProtectedRoute><AIOpsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -20,6 +20,7 @@ import {
   Compass,
   Bot,
   DollarSign,
+  Cpu,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -90,6 +91,17 @@ export default function AppLayout({ children }: LayoutProps) {
               </Link>
             )
           })}
+
+          {/* AI Ops – owner only */}
+          {isOwner && (
+            <Link
+              to="/ai-ops"
+              className={location.pathname === '/ai-ops' ? 'nav-item-active' : 'nav-item'}
+            >
+              <Cpu size={15} />
+              <span className="text-xs font-medium">AI Ops</span>
+            </Link>
+          )}
 
           {/* Admin nav item – only visible to admin/owner */}
           {(isAdmin || isOwner) && (
