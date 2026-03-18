@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { usePermissions } from '../hooks/usePermissions'
 import { supabase } from '../lib/supabase'
 import { Issue, Todo, Rock } from '../types'
-import { AlertCircle, CheckCircle2, Circle, Plus, TrendingUp, Target, BarChart3 } from 'lucide-react'
+import {
+  AlertCircle, CheckCircle2, Circle, Plus, TrendingUp, Target, BarChart3,
+  Scan, ExternalLink, Check, X, ChevronUp, ChevronDown,
+} from 'lucide-react'
 import AskClaudeButton from '../components/shared/AskClaudeButton'
 
 const PRIORITY_CFG = {
@@ -10,6 +14,12 @@ const PRIORITY_CFG = {
   high: { label: 'High', cls: 'text-amber-400 bg-amber-900/20 border-amber-800/30' },
   medium: { label: 'Medium', cls: 'text-zinc-400 bg-zinc-800/40 border-zinc-700' },
   low: { label: 'Low', cls: 'text-zinc-500 bg-zinc-900/20 border-zinc-800/50' },
+}
+
+const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
+  'slack-scan': { label: 'AI Detected', cls: 'text-purple-400 bg-purple-900/20 border-purple-800/30' },
+  'auto-escalation': { label: 'Auto-Escalated', cls: 'text-orange-400 bg-orange-900/20 border-orange-800/30' },
+  'manual': { label: 'Manual', cls: 'text-zinc-400 bg-zinc-800/40 border-zinc-700' },
 }
 
 const ROCK_STATUS = {
@@ -29,9 +39,12 @@ function Loading() {
 
 export function IssuesPage() {
   const { profile } = useAuth()
+  const { isAdmin, isOwner } = usePermissions()
   const [issues, setIssues] = useState<Issue[]>([])
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showTriage, setShowTriage] = useState(true)
+  const [expandedTriage, setExpandedTriage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile) return
@@ -54,7 +67,18 @@ export function IssuesPage() {
     setIssues(p => p.map(i => i.id === id ? { ...i, status: 'resolved' as const } : i))
   }
 
+  async function promoteTriage(id: string) {
+    await supabase.from('issues').update({ status: 'open' }).eq('id', id)
+    setIssues(p => p.map(i => i.id === id ? { ...i, status: 'open' as any } : i))
+  }
+
+  async function dismissTriage(id: string) {
+    await supabase.from('issues').update({ status: 'dismissed' }).eq('id', id)
+    setIssues(p => p.map(i => i.id === id ? { ...i, status: 'dismissed' as any } : i))
+  }
+
   if (loading) return <Loading />
+  const triage = issues.filter(i => (i as any).status === 'triage')
   const open = issues.filter(i => i.status === 'open' || i.status === 'in_discussion')
   const resolved = issues.filter(i => i.status === 'resolved')
 
@@ -67,6 +91,85 @@ export function IssuesPage() {
         </div>
         <AskClaudeButton context="issues" />
       </div>
+
+      {/* Triage Section — owner + admin only */}
+      {(isOwner || isAdmin) && triage.length > 0 && (
+        <div className="border border-purple-800/30 rounded-xl bg-purple-900/5 overflow-hidden">
+          <button
+            onClick={() => setShowTriage(!showTriage)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-900/10 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Scan size={15} className="text-purple-400" />
+              <span className="font-mono text-[10px] tracking-[0.3em] text-purple-400 uppercase">
+                Triage · {triage.length} detected
+              </span>
+            </div>
+            {showTriage ? <ChevronUp size={14} className="text-purple-400" /> : <ChevronDown size={14} className="text-purple-400" />}
+          </button>
+
+          {showTriage && (
+            <div className="border-t border-purple-800/20 px-4 py-3 space-y-2">
+              <p className="font-mono text-[10px] text-cult-text mb-3">
+                AI-detected from Slack. Promote to add to IDS queue, or dismiss.
+              </p>
+              {triage.map(issue => {
+                const p = PRIORITY_CFG[(issue as any).priority] || PRIORITY_CFG.medium
+                const src = SOURCE_BADGE[(issue as any).source_type] || SOURCE_BADGE.manual
+                const expanded = expandedTriage === issue.id
+                return (
+                  <div key={issue.id} className="card border-purple-800/20 overflow-hidden">
+                    <div className="p-4 flex items-start gap-4">
+                      <Scan size={15} className="text-purple-400 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-cult-white">{issue.title}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${src.cls}`}>{src.label}</span>
+                          {(issue as any).source_channel && (
+                            <span className="font-mono text-[10px] text-cult-text">#{(issue as any).source_channel}</span>
+                          )}
+                          {(issue as any).submitted_by_name && (
+                            <span className="font-mono text-[10px] text-cult-text">· {(issue as any).submitted_by_name}</span>
+                          )}
+                        </div>
+                        {expanded && (
+                          <div className="mt-3 space-y-2">
+                            {issue.description && <p className="text-xs text-cult-text">{issue.description}</p>}
+                            {(issue as any).source_url && (
+                              <a href={(issue as any).source_url} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-mono text-purple-400 hover:text-purple-300 transition-colors">
+                                <ExternalLink size={10} /> View in Slack
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${p.cls}`}>{p.label}</span>
+                        <button onClick={() => setExpandedTriage(expanded ? null : issue.id)}
+                          className="p-1 rounded hover:bg-cult-muted transition-colors text-cult-text">
+                          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </button>
+                        <button onClick={() => promoteTriage(issue.id)}
+                          title="Promote to IDS queue"
+                          className="p-1 rounded hover:bg-green-900/20 transition-colors text-green-400 hover:text-green-300">
+                          <Check size={15} />
+                        </button>
+                        <button onClick={() => dismissTriage(issue.id)}
+                          title="Dismiss"
+                          className="p-1 rounded hover:bg-red-900/20 transition-colors text-cult-text hover:text-red-400">
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card p-4">
         <div className="flex gap-3">
           <input value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()}
@@ -79,12 +182,21 @@ export function IssuesPage() {
         <div className="space-y-2">
           {open.map(issue => {
             const p = PRIORITY_CFG[issue.priority]
+            const src = SOURCE_BADGE[(issue as any).source_type]
             return (
               <div key={issue.id} className="card p-4 flex items-start gap-4 group">
                 <AlertCircle size={15} className="text-cult-text mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-cult-white">{issue.title}</p>
                   {issue.description && <p className="text-xs text-cult-text mt-1">{issue.description}</p>}
+                  {src && src.label !== 'Manual' && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${src.cls}`}>{src.label}</span>
+                      {(issue as any).source_channel && (
+                        <span className="font-mono text-[10px] text-cult-text">#{(issue as any).source_channel}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${p.cls}`}>{p.label}</span>
