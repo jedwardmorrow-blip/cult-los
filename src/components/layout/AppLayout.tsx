@@ -21,6 +21,7 @@ import {
   Bot,
   DollarSign,
   Cpu,
+  Gauge,
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -91,6 +92,17 @@ export default function AppLayout({ children }: LayoutProps) {
               </Link>
             )
           })}
+
+          {/* State of Business – admin/owner only */}
+          {(isAdmin || isOwner) && (
+            <Link
+              to="/state"
+              className={location.pathname === '/state' ? 'nav-item-active' : 'nav-item'}
+            >
+              <Gauge size={15} />
+              <span className="text-xs font-medium">State of Business</span>
+            </Link>
+          )}
 
           {/* AI Ops – owner only */}
           {isOwner && (
