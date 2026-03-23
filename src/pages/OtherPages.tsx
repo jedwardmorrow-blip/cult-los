@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import AskClaudeButton from '../components/shared/AskClaudeButton'
 
-const PRIORITY_CFG = {
+const PRIORITY_CFG: Record<string, { label: string; cls: string }> = {
   critical: { label: 'Critical', cls: 'text-red-400 bg-red-900/20 border-red-800/30' },
   high: { label: 'High', cls: 'text-amber-400 bg-amber-900/20 border-amber-800/30' },
   medium: { label: 'Medium', cls: 'text-zinc-400 bg-zinc-800/40 border-zinc-700' },
