@@ -10,7 +10,7 @@ import {
 export default function ConcludeSection() {
   const {
     todos, rocks, issues, members, presence,
-    concludeRating, concludeCascading,
+    concludeRating, concludeCascading, memberRatings,
     setConcludeRating, setConcludeCascading, recordSession,
     meetingStreak,
   } = useMeeting()
@@ -215,7 +215,7 @@ export default function ConcludeSection() {
         />
       </div>
 
-      {/* Rating */}
+      {/* Rating — per person */}
       <div className="mb-8">
         <label className="block text-[10px] font-mono text-cult-text/40 tracking-wider uppercase mb-3">
           Rate This Meeting
@@ -241,6 +241,33 @@ export default function ConcludeSection() {
           <p className="text-xs text-cult-gold/60 font-mono">
             {ratingFeedback[concludeRating]}
           </p>
+        )}
+
+        {/* Per-person rating display + average */}
+        {Object.keys(memberRatings).length > 0 && (
+          <div className="mt-4 p-3 rounded-lg border border-cult-border bg-cult-surface">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-mono text-cult-text/40 tracking-wider uppercase">Team Ratings</span>
+              <span className="text-sm font-mono text-cult-gold font-bold">
+                Avg: {(Object.values(memberRatings).reduce((a, b) => a + b, 0) / Object.values(memberRatings).length).toFixed(1)}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {members.map(m => {
+                const rating = memberRatings[m.profile_id]
+                if (rating == null) return (
+                  <div key={m.profile_id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-cult-dark text-[10px] font-mono text-cult-text/25">
+                    {(m.profiles?.full_name || '?').split(' ')[0]}: —
+                  </div>
+                )
+                return (
+                  <div key={m.profile_id} className="flex items-center gap-1.5 px-2 py-1 rounded bg-cult-gold/10 text-[10px] font-mono text-cult-gold">
+                    {(m.profiles?.full_name || '?').split(' ')[0]}: {rating}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )}
       </div>
 

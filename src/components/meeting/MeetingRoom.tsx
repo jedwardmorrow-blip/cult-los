@@ -24,7 +24,7 @@ const SECTION_ICONS: Record<string, any> = {
 
 export default function MeetingRoom() {
   const navigate = useNavigate()
-  const { room, currentSection, setCurrentSection, loading, resetMeeting } = useMeeting()
+  const { room, currentSection, setCurrentSection, loading, resetMeeting, meetingStartedAt, startMeeting, presence } = useMeeting()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
@@ -196,6 +196,23 @@ export default function MeetingRoom() {
 
         {/* Section content area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Meeting start ceremony — shown when meeting hasn't started */}
+          {!meetingStartedAt && (
+            <div className="max-w-md mx-auto text-center py-8 mb-6 animate-fade-in">
+              <div className="text-[10px] font-mono text-cult-text/40 tracking-wider uppercase mb-4">
+                {presence.length} {presence.length === 1 ? 'person' : 'people'} in the room
+              </div>
+              <button
+                onClick={startMeeting}
+                className="px-8 py-3 rounded-lg bg-cult-gold text-cult-black font-display text-lg tracking-widest hover:bg-cult-gold/90 transition-colors shadow-[0_0_24px_rgba(200,168,75,0.2)]"
+              >
+                START MEETING
+              </button>
+              <p className="text-[10px] font-mono text-cult-text/30 mt-3 tracking-wider">
+                Starts a 5-minute Segue timer and syncs all participants
+              </p>
+            </div>
+          )}
           <SectionShell sectionId={currentSection} />
         </div>
 

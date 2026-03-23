@@ -1,14 +1,43 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useMeeting } from '../../hooks/useMeetingRoom'
-import { Play, Pause, RotateCcw, Settings } from 'lucide-react'
+import { SECTIONS } from '../../types/meeting'
+import { Play, Pause, RotateCcw, Settings, Timer } from 'lucide-react'
 
 export default function MeetingTimer() {
-  const { timer, startTimer, stopTimer, resetTimer, room, updateRoomDuration } = useMeeting()
+  const { timer, startTimer, stopTimer, resetTimer, room, updateRoomDuration, currentSection } = useMeeting()
   const [remaining, setRemaining] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [customMinutes, setCustomMinutes] = useState('')
   const [durationInput, setDurationInput] = useState('')
   const totalSecondsRef = useRef(0)
+  // Track section changes to show timer suggestion
+  const [sectionSuggestion, setSectionSuggestion] = useState<{ label: string; minutes: number } | null>(null)
+  const prevSectionRef = useRef(currentSection)
+
+  // When section changes, show a timer suggestion chip
+  useEffect(() => {
+    if (currentSection !== prevSectionRef.current) {
+      prevSectionRef.current = currentSection
+      const sectionDef = SECTIONS.find(s => s.id === currentSection)
+      if (sectionDef) {
+        setSectionSuggestion({ label: sectionDef.label, minutes: sectionDef.minutes })
+      }
+    }
+  }, [currentSection])
+
+  // Auto-dismiss suggestion after timer starts or after 10 seconds
+  useEffect(() => {
+    if (!sectionSuggestion) return
+    if (timer?.running) { setSectionSuggestion(null); return }
+    const timeout = setTimeout(() => setSectionSuggestion(null), 10000)
+    return () => clearTimeout(timeout)
+  }, [sectionSuggestion, timer?.running])
+
+  function handleSectionTimerStart(minutes: number) {
+    totalSecondsRef.current = minutes * 60
+    startTimer(minutes * 60)
+    setSectionSuggestion(null)
+  }
 
   useEffect(() => {
     if (!timer) {
@@ -110,6 +139,17 @@ export default function MeetingTimer() {
 
   return (
     <div className="relative flex items-center gap-2">
+      {/* Section timer suggestion chip */}
+      {sectionSuggestion && !isRunning && (
+        <button
+          onClick={() => handleSectionTimerStart(sectionSuggestion.minutes)}
+          className="flex items-center gap-1 px-2 py-1 rounded-md bg-cult-gold/10 text-cult-gold text-[10px] font-mono tracking-wider hover:bg-cult-gold/20 transition-colors animate-fade-in"
+          title={`Start ${sectionSuggestion.minutes}m timer for ${sectionSuggestion.label}`}
+        >
+          <Timer size={10} />
+          {sectionSuggestion.label} {sectionSuggestion.minutes}m
+        </button>
+      )}
       {/* A5: Progress bar */}
       {isRunning && (
         <div className="absolute -bottom-3 left-0 right-0 h-0.5 bg-cult-border rounded-full overflow-hidden">

@@ -1,7 +1,7 @@
 import { useMeeting } from '../../../hooks/useMeetingRoom'
 import { useToast } from '../../ui/Toast'
 import { useConfetti, ConfettiOverlay } from '../../ui/Confetti'
-import { Target, ChevronRight } from 'lucide-react'
+import { Target, ChevronRight, AlertCircle } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   on_track: { label: 'On Track', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/30' },
@@ -10,9 +10,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 }
 
 export default function RocksSection() {
-  const { rocks, cycleRockStatus } = useMeeting()
+  const { rocks, cycleRockStatus, addIssue } = useMeeting()
   const { showToast } = useToast()
   const confetti = useConfetti()
+
+  async function dropRockToIDS(rock: typeof rocks[0]) {
+    await addIssue(
+      `Rock off track: ${rock.title}`,
+      `90-day rock "${rock.title}" is off track. Owner: ${rock.profiles?.full_name || 'Unassigned'}.`,
+    )
+    showToast(`"${rock.title}" dropped to IDS`, 'success')
+  }
 
   function handleCycle(id: string, currentStatus: string) {
     cycleRockStatus(id, currentStatus)
@@ -85,8 +93,17 @@ export default function RocksSection() {
                 </div>
               </div>
 
-              {/* Chevron indicator */}
-              <ChevronRight size={14} className="text-cult-text/20 flex-shrink-0" />
+              {/* Drop to IDS for off-track rocks */}
+              {rock.status === 'off_track' && (
+                <button
+                  onClick={() => dropRockToIDS(rock)}
+                  className="flex-shrink-0 text-[9px] font-mono px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors tracking-wider uppercase flex items-center gap-0.5"
+                  title="Drop to IDS for discussion"
+                >
+                  <AlertCircle size={9} />
+                  → IDS
+                </button>
+              )}
             </div>
 
             {/* Description if present */}

@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react'
 import { useMeeting } from '../../../hooks/useMeetingRoom'
 import { useAuth } from '../../../hooks/useAuth'
 import { useToast } from '../../ui/Toast'
-import { BarChart3, TrendingUp, TrendingDown, Minus, MessageSquare } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Minus, MessageSquare, AlertCircle } from 'lucide-react'
 
 export default function ScorecardSection() {
   const { user } = useAuth()
-  const { scorecardMetrics, scorecardEntries, addScorecardEntry } = useMeeting()
+  const { scorecardMetrics, scorecardEntries, addScorecardEntry, addIssue } = useMeeting()
   const { showToast } = useToast()
   const [editingCell, setEditingCell] = useState<string | null>(null)
   const [cellValue, setCellValue] = useState('')
@@ -72,6 +72,26 @@ export default function ScorecardSection() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
+  // Check if a metric is off-track this week (current value < goal)
+  function isOffTrack(metricId: string): boolean {
+    if (weeks.length === 0) return false
+    const entry = getEntry(metricId, weeks[0])
+    const metric = scorecardMetrics.find(m => m.id === metricId)
+    if (entry?.value == null || metric?.goal_value == null) return false
+    return entry.value < metric.goal_value
+  }
+
+  async function dropMetricToIDS(metric: typeof scorecardMetrics[0]) {
+    const entry = getEntry(metric.id, weeks[0])
+    const val = entry?.value != null ? entry.value : '?'
+    const goal = metric.goal_value != null ? metric.goal_value : '?'
+    await addIssue(
+      `${metric.title} off track (${val} vs ${goal} goal)`,
+      `Scorecard metric "${metric.title}" is below goal. Owner: ${metric.profiles?.full_name || 'Unassigned'}.`,
+    )
+    showToast(`"${metric.title}" dropped to IDS`, 'success')
+  }
+
   if (scorecardMetrics.length === 0) {
     return (
       <div className="max-w-3xl mx-auto">
@@ -115,7 +135,19 @@ export default function ScorecardSection() {
               return (
                 <tr key={metric.id} className="border-b border-cult-border/50 hover:bg-cult-surface/50 transition-colors">
                   <td className="py-3 px-2 sm:px-3">
-                    <div className="text-cult-white font-medium text-xs sm:text-sm">{metric.title}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-cult-white font-medium text-xs sm:text-sm">{metric.title}</span>
+                      {isOffTrack(metric.id) && (
+                        <button
+                          onClick={() => dropMetricToIDS(metric)}
+                          className="flex-shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors tracking-wider uppercase flex items-center gap-0.5"
+                          title="Drop to IDS for discussion"
+                        >
+                          <AlertCircle size={9} />
+                          → IDS
+                        </button>
+                      )}
+                    </div>
                     {metric.unit && (
                       <div className="text-[10px] text-cult-text/40 font-mono">{metric.unit}</div>
                     )}

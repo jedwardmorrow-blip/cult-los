@@ -42,6 +42,10 @@ export function MeetingProvider({ roomId, children }: Props) {
   // Phase 4: Conclude state
   const [concludeRating, setConcludeRating] = useState<number | null>(null)
   const [concludeCascading, setConcludeCascading] = useState('')
+  // Per-person ratings (broadcast-synced)
+  const [memberRatings, setMemberRatings] = useState<Record<string, number>>({})
+  // Meeting start ceremony
+  const [meetingStartedAt, setMeetingStartedAt] = useState<string | null>(null)
   // A20: Meeting streak
   const [meetingStreak, setMeetingStreak] = useState(0)
 
@@ -262,6 +266,14 @@ export function MeetingProvider({ roomId, children }: Props) {
       })
       .on('broadcast', { event: 'discussing' }, ({ payload }) => {
         setDiscussingIssueId(payload.issueId || null)
+      })
+      .on('broadcast', { event: 'rating' }, ({ payload }) => {
+        if (payload.userId && payload.rating != null) {
+          setMemberRatings(prev => ({ ...prev, [payload.userId]: payload.rating }))
+        }
+      })
+      .on('broadcast', { event: 'meeting_started' }, ({ payload }) => {
+        setMeetingStartedAt(payload.startedAt || null)
       })
       .subscribe()
 
@@ -564,7 +576,51 @@ export function MeetingProvider({ roomId, children }: Props) {
     })
   }, [roomId, user])
 
+  const deleteIssue = useCallback(async (issueId: string) => {
+    await supabase.from('issue_notes').delete().eq('issue_id', issueId)
+    await supabase.from('issue_votes').delete().eq('issue_id', issueId)
+    await supabase.from('issues').delete().eq('id', issueId)
+    if (discussingIssueId === issueId) {
+      setDiscussing(null)
+    }
+  }, [discussingIssueId, setDiscussing])
+
+  const deleteTodo = useCallback(async (todoId: string) => {
+    await supabase.from('todos').delete().eq('id', todoId)
+  }, [])
+
+  // ─── Meeting start ceremony ───
+  const startMeeting = useCallback(() => {
+    const now = new Date().toISOString()
+    setMeetingStartedAt(now)
+    // Broadcast to all participants
+    supabase.channel(`meeting:${roomId}`).send({
+      type: 'broadcast', event: 'meeting_started', payload: { startedAt: now },
+    })
+    // Auto-start the segue timer (5 min)
+    startTimer(5 * 60)
+    // Ensure we're on the first section
+    handleSetSection('segue' as SectionId)
+  }, [roomId, startTimer])
+
   // ─── Phase 4: Conclude ───
+
+  // Wrap setConcludeRating to also broadcast + track in memberRatings
+  const handleSetConcludeRating = useCallback((rating: number | null) => {
+    setConcludeRating(rating)
+    if (user && rating != null) {
+      setMemberRatings(prev => ({ ...prev, [user.id]: rating }))
+      supabase.channel(`meeting:${roomId}`).send({
+        type: 'broadcast', event: 'rating', payload: { userId: user.id, rating },
+      })
+    } else if (user && rating == null) {
+      setMemberRatings(prev => {
+        const next = { ...prev }
+        delete next[user.id]
+        return next
+      })
+    }
+  }, [roomId, user])
 
   const recordSession = useCallback(async () => {
     if (!user) return
@@ -577,10 +633,15 @@ export function MeetingProvider({ roomId, children }: Props) {
     const issueResolved = issues.filter(i => i.status === 'resolved').length
     const attendeeIds = presence.map(p => p.user_id)
     const meetingDate = new Date().toISOString().split('T')[0]
+    // Compute average rating from all member ratings
+    const ratingValues = Object.values(memberRatings)
+    const avgRating = ratingValues.length > 0
+      ? Math.round((ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) * 10) / 10
+      : concludeRating
     await supabase.from('meeting_sessions').insert({
       room_id: roomId,
       meeting_date: meetingDate,
-      rating: concludeRating,
+      rating: avgRating,
       cascading_messages: concludeCascading,
       todo_stats: { total: todoTotal, completed: todoCompleted },
       rock_stats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
@@ -593,7 +654,7 @@ export function MeetingProvider({ roomId, children }: Props) {
       roomId,
       roomName: room?.name,
       meetingDate,
-      rating: concludeRating,
+      rating: avgRating,
       cascadingMessages: concludeCascading,
       todoStats: { total: todoTotal, completed: todoCompleted },
       rockStats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
@@ -607,7 +668,7 @@ export function MeetingProvider({ roomId, children }: Props) {
         body: {
           room_id: roomId,
           meeting_date: meetingDate,
-          rating: concludeRating,
+          rating: avgRating,
           cascading_messages: concludeCascading,
           todo_stats: { total: todoTotal, completed: todoCompleted },
           rock_stats: { onTrack: rockOnTrack, offTrack: rockOffTrack, done: rockDone },
@@ -618,10 +679,12 @@ export function MeetingProvider({ roomId, children }: Props) {
       }).catch(err => console.warn('[F1] Slack recap failed:', err))
     }
     setConcludeRating(null)
+    setMemberRatings({})
     setConcludeCascading('')
+    setMeetingStartedAt(null)
     // A20: Reload streak after recording
     loadStreak()
-  }, [roomId, room, user, todos, rocks, issues, presence, concludeRating, concludeCascading])
+  }, [roomId, room, user, todos, rocks, issues, presence, concludeRating, concludeCascading, memberRatings])
 
   // A17: Reset meeting — clear transient session data
   const resetMeeting = useCallback(async () => {
@@ -632,6 +695,8 @@ export function MeetingProvider({ roomId, children }: Props) {
     // Reset conclude state
     setConcludeRating(null)
     setConcludeCascading('')
+    setMeetingStartedAt(null)
+    setMemberRatings({})
     // Reset section to segue
     handleSetSection('segue')
     // Reset timer
@@ -653,11 +718,11 @@ export function MeetingProvider({ roomId, children }: Props) {
       // Phase 3: IDS
       issues, issueVotes, issueNotes, discussingIssueId,
       addIssue, voteIssue, setDiscussing, updateIssueDraft,
-      solveIssue, addIssueNote, issueToTodo,
+      solveIssue, addIssueNote, issueToTodo, deleteIssue, deleteTodo,
       // Phase 4: Conclude
-      concludeRating, concludeCascading,
-      setConcludeRating, setConcludeCascading, recordSession,
-      resetMeeting, meetingStreak, updateRoomDuration,
+      concludeRating, concludeCascading, memberRatings,
+      setConcludeRating: handleSetConcludeRating, setConcludeCascading, recordSession,
+      resetMeeting, meetingStreak, meetingStartedAt, startMeeting, updateRoomDuration,
     }}>
       {children}
     </MeetingContext.Provider>

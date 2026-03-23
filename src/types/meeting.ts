@@ -160,15 +160,21 @@ export interface MeetingContextType {
   solveIssue: (issueId: string, solution: string) => Promise<void>
   addIssueNote: (issueId: string, text: string) => Promise<void>
   issueToTodo: (issue: import('./index').Issue) => Promise<void>
+  deleteIssue: (issueId: string) => Promise<void>
+  deleteTodo: (todoId: string) => Promise<void>
   // Phase 4: Conclude
   concludeRating: number | null
   concludeCascading: string
+  memberRatings: Record<string, number>
   setConcludeRating: (rating: number | null) => void
   setConcludeCascading: (text: string) => void
   recordSession: () => Promise<void>
   resetMeeting: () => Promise<void>
   // A20: Meeting streak
   meetingStreak: number
+  // Meeting start ceremony
+  meetingStartedAt: string | null
+  startMeeting: () => void
   // Timer duration adjustment
   updateRoomDuration: (minutes: number) => Promise<void>
 }

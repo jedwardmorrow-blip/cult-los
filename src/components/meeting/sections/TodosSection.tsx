@@ -3,7 +3,7 @@ import { useMeeting } from '../../../hooks/useMeetingRoom'
 import { useAuth } from '../../../hooks/useAuth'
 import { useToast } from '../../ui/Toast'
 import { ConfettiOverlay, useConfetti } from '../../ui/Confetti'
-import { ListTodo, Plus, Check, Clock, AlertTriangle, Ban, Filter, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import { ListTodo, Plus, Check, Clock, AlertTriangle, Ban, Filter, ArrowUp, ArrowDown, Minus, Trash2 } from 'lucide-react'
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   open: { label: 'Open', icon: Clock, color: 'text-blue-400' },
@@ -24,13 +24,15 @@ const PRIORITY_BADGE: Record<string, { color: string; icon: React.ElementType }>
 
 export default function TodosSection() {
   const { user } = useAuth()
-  const { todos, members, addTodo, updateTodoStatus } = useMeeting()
+  const { todos, members, addTodo, updateTodoStatus, deleteTodo } = useMeeting()
   const { showToast } = useToast()
   const confetti = useConfetti()
   const [newTitle, setNewTitle] = useState('')
   const [newOwner, setNewOwner] = useState('')
   // A9: Owner filter — 'all' | 'mine' | specific profile_id
   const [ownerFilter, setOwnerFilter] = useState<string>('all')
+  // EOS review mode: binary done/not-done toggle
+  const [eosReviewMode, setEosReviewMode] = useState(false)
 
   async function handleAdd() {
     const title = newTitle.trim()
@@ -95,24 +97,41 @@ export default function TodosSection() {
               Completion
             </span>
             <span className={`text-[10px] font-mono tracking-wider ${
-              completionPct === 100 ? 'text-green-400' : completionPct >= 70 ? 'text-cult-gold' : 'text-cult-text/50'
+              completionPct >= 90 ? 'text-green-400' : completionPct >= 70 ? 'text-cult-gold' : 'text-red-400'
             }`}>
               {doneCount}/{totalCount} ({completionPct}%)
+              {completionPct < 90 && totalCount > 0 && (
+                <span className="text-cult-text/30 ml-1">— EOS goal: 90%</span>
+              )}
             </span>
           </div>
-          <div className="w-full h-1.5 bg-cult-border rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-cult-border rounded-full overflow-hidden relative">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
-                completionPct === 100 ? 'bg-green-500' : completionPct >= 70 ? 'bg-cult-gold' : 'bg-cult-gold/60'
+                completionPct >= 90 ? 'bg-green-500' : completionPct >= 70 ? 'bg-cult-gold' : 'bg-red-400'
               }`}
               style={{ width: `${completionPct}%` }}
             />
+            {/* 90% EOS threshold marker */}
+            <div className="absolute top-0 bottom-0 w-px bg-cult-text/20" style={{ left: '90%' }} title="90% EOS target" />
           </div>
         </div>
       )}
 
-      {/* A9: Owner filter */}
-      <div className="flex items-center gap-2 mb-4">
+      {/* Mode toggle + Owner filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => setEosReviewMode(!eosReviewMode)}
+          className={`text-[10px] font-mono px-2.5 py-1 rounded border transition-colors tracking-wider uppercase ${
+            eosReviewMode
+              ? 'bg-cult-gold/15 text-cult-gold border-cult-gold/30'
+              : 'text-cult-text/40 border-cult-border hover:text-cult-text/60 hover:border-cult-border'
+          }`}
+          title="EOS Review: simple done/not-done mode"
+        >
+          {eosReviewMode ? 'EOS Review ✓' : 'EOS Review'}
+        </button>
+        <div className="w-px h-4 bg-cult-border" />
         <Filter size={12} className="text-cult-text/30" />
         <div className="flex gap-1">
           <button
@@ -183,7 +202,36 @@ export default function TodosSection() {
           <ListTodo size={24} className="mx-auto text-cult-text/20 mb-2" />
           <p className="text-xs text-cult-text/40">All caught up! Add new to-dos above.</p>
         </div>
+      ) : eosReviewMode ? (
+        /* EOS Review Mode: simplified binary done/not-done */
+        <div className="space-y-1">
+          {activeTodos.map(todo => (
+            <div
+              key={todo.id}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-cult-border bg-cult-surface hover:bg-cult-surface/80 transition-all group"
+            >
+              <button
+                onClick={() => {
+                  updateTodoStatus(todo.id, 'complete')
+                  confetti.fire()
+                  showToast('Done!', 'success')
+                }}
+                className="flex-shrink-0 w-6 h-6 rounded-md border-2 border-cult-border hover:border-green-400 hover:bg-green-500/10 flex items-center justify-center transition-colors"
+                title="Mark done"
+              >
+                <Check size={12} className="text-cult-text/20 group-hover:text-green-400 transition-colors" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-cult-white">{todo.title}</p>
+              </div>
+              <span className="text-[10px] font-mono text-cult-text/30 flex-shrink-0">
+                {(todo.profiles?.full_name || 'Unassigned').split(' ')[0]}
+              </span>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* Default detailed mode */
         <div className="space-y-2">
           {activeTodos.map(todo => {
             const config = STATUS_CONFIG[todo.status] || STATUS_CONFIG.open
@@ -236,6 +284,15 @@ export default function TodosSection() {
                 <span className={`text-[9px] font-mono tracking-wider uppercase ${config.color}`}>
                   {config.label}
                 </span>
+
+                {/* Delete */}
+                <button
+                  onClick={() => { if (confirm('Delete this to-do?')) deleteTodo(todo.id) }}
+                  className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-cult-text/30 hover:text-red-400 transition-all"
+                  title="Delete"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             )
           })}
