@@ -81,19 +81,19 @@ export default function HeadlinesSection() {
                 </span>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Actions — always visible */}
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => dropHeadlineToIDS(headline)}
-                  className="p-1.5 rounded hover:bg-cult-gold/10 text-cult-text/40 hover:text-cult-gold transition-colors"
+                  className="p-1.5 rounded hover:bg-cult-gold/10 text-cult-text/30 hover:text-cult-gold transition-colors"
                   title="Drop to IDS"
                 >
                   <ArrowDownToLine size={14} />
                 </button>
                 <button
                   onClick={() => removeHeadline(headline.id)}
-                  className="p-1.5 rounded hover:bg-red-500/10 text-cult-text/40 hover:text-red-400 transition-colors"
-                  title="Remove"
+                  className="p-1.5 rounded hover:bg-red-500/10 text-cult-text/30 hover:text-red-400 transition-colors"
+                  title="Delete headline"
                 >
                   <X size={14} />
                 </button>

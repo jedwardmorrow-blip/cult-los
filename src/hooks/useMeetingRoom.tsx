@@ -413,22 +413,40 @@ export function MeetingProvider({ roomId, children }: Props) {
 
   const addHeadline = useCallback(async (text: string) => {
     if (!user) return
+    // Optimistic: add to local state immediately
+    const optimistic: MeetingHeadline = {
+      id: crypto.randomUUID(),
+      room_id: roomId,
+      profile_id: user.id,
+      text,
+      is_done: false,
+      created_at: new Date().toISOString(),
+    }
+    setHeadlines(prev => [...prev, optimistic])
     await supabase.from('meeting_headlines').insert({
       room_id: roomId,
       profile_id: user.id,
       text,
     })
+    // Reload to get server-assigned ID
+    loadHeadlines()
   }, [roomId, user])
 
   const toggleHeadline = useCallback(async (id: string, isDone: boolean) => {
+    // Optimistic: update local state immediately
+    setHeadlines(prev => prev.map(h => h.id === id ? { ...h, is_done: isDone } : h))
     await supabase.from('meeting_headlines').update({ is_done: isDone }).eq('id', id)
   }, [])
 
   const removeHeadline = useCallback(async (id: string) => {
+    // Optimistic: remove from local state immediately
+    setHeadlines(prev => prev.filter(h => h.id !== id))
     await supabase.from('meeting_headlines').delete().eq('id', id)
   }, [])
 
   const dropHeadlineToIDS = useCallback(async (headline: MeetingHeadline) => {
+    // Optimistic: mark as dropped locally
+    setHeadlines(prev => prev.map(h => h.id === headline.id ? { ...h, dropped_to_ids: true } : h))
     // Create an issue from the headline
     await supabase.from('issues').insert({
       room_id: roomId,
@@ -458,13 +476,35 @@ export function MeetingProvider({ roomId, children }: Props) {
   const addTodo = useCallback(async (title: string, ownerId?: string) => {
     if (!user) return
     const targetOwner = ownerId || user.id
+    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    // Optimistic: add to local state immediately
+    const ownerMember = members.find(m => m.profile_id === targetOwner)
+    const optimistic: Todo = {
+      id: crypto.randomUUID(),
+      room_id: roomId,
+      owner_id: targetOwner,
+      title,
+      status: 'open',
+      priority: 'medium',
+      due_date: dueDate,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      profiles: ownerMember?.profiles ? {
+        id: ownerMember.profiles.id,
+        full_name: ownerMember.profiles.full_name,
+        avatar_url: ownerMember.profiles.avatar_url,
+      } : undefined,
+    } as Todo
+    setTodos(prev => [optimistic, ...prev])
     await supabase.from('todos').insert({
       room_id: roomId,
       owner_id: targetOwner,
       title,
       status: 'open',
-      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      due_date: dueDate,
     })
+    // Reload to get server-assigned ID
+    loadTodos()
     // F2: Notify assigned user via Slack DM (non-blocking, skip self)
     if (targetOwner !== user.id) {
       supabase.functions.invoke('slack-todo-notify', {
@@ -477,9 +517,16 @@ export function MeetingProvider({ roomId, children }: Props) {
         },
       }).catch(err => console.warn('[F2] Slack todo notify failed:', err))
     }
-  }, [roomId, room, user])
+  }, [roomId, room, user, members])
 
   const updateTodoStatus = useCallback(async (id: string, status: string) => {
+    // Optimistic: update local state immediately
+    setTodos(prev => prev.map(t => t.id === id ? {
+      ...t,
+      status: status as Todo['status'],
+      completed_at: status === 'complete' ? new Date().toISOString() : undefined,
+      updated_at: new Date().toISOString(),
+    } : t))
     await supabase.from('todos').update({
       status,
       completed_at: status === 'complete' ? new Date().toISOString() : null,
@@ -586,6 +633,8 @@ export function MeetingProvider({ roomId, children }: Props) {
   }, [discussingIssueId, setDiscussing])
 
   const deleteTodo = useCallback(async (todoId: string) => {
+    // Optimistic: remove from local state immediately
+    setTodos(prev => prev.filter(t => t.id !== todoId))
     await supabase.from('todos').delete().eq('id', todoId)
   }, [])
 
